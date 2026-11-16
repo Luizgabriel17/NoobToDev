@@ -1,11 +1,20 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 
 :root {
-  --brand-primary: #3b82f6;
-  --brand-purple: #8b5cf6;
-  --brand-success: #22c55e;
-  --text-dark: #0f172a;
-  --text-muted: #475569;
+  --brand-primary: #1d4ed8;
+  --brand-primary-soft: #eaf1ff;
+  --brand-success: #1f8f4d;
+  --brand-success-soft: #ebf8ee;
+  --brand-warning: #b45309;
+  --brand-warning-soft: #fff4de;
+  --brand-danger: #b91c1c;
+  --brand-danger-soft: #feeaea;
+  --surface: #ffffff;
+  --surface-alt: #f3f4f6;
+  --border: #d8dee7;
+  --text: #111827;
+  --muted: #5b6475;
+  --shadow: 0 8px 20px rgba(17, 24, 39, 0.08);
 }
 
 * {
@@ -19,8 +28,8 @@ html {
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, sans-serif;
-  background: #f8fafc;
-  color: var(--text-dark);
+  background: #f6f7fb;
+  color: var(--text);
 }
 
 img {
@@ -29,7 +38,8 @@ img {
 
 code {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-  background: rgba(148, 163, 184, 0.12);
+  background: #eef2f6;
+  border: 1px solid var(--border);
   border-radius: 0.45rem;
   padding: 0.15rem 0.45rem;
   white-space: pre-wrap;
@@ -45,20 +55,45 @@ input {
   border-radius: 999px;
   font-weight: 700;
   padding-inline: 1.35rem;
+  border: 1px solid transparent;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--brand-primary), var(--brand-purple));
-  border: none;
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #fff;
+}
+
+.btn-primary:hover,
+.btn-primary:focus-visible {
+  background: #163eb8;
+  border-color: #163eb8;
+  color: #fff;
 }
 
 .btn-success {
-  background: linear-gradient(135deg, #16a34a, #22c55e);
-  border: none;
+  background: var(--brand-success);
+  border-color: var(--brand-success);
+  color: #fff;
+}
+
+.btn-success:hover,
+.btn-success:focus-visible {
+  background: #16713d;
+  border-color: #16713d;
+  color: #fff;
 }
 
 .btn-outline-primary {
-  border-width: 2px;
+  border-width: 1px;
+  color: var(--brand-primary);
+  background: transparent;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus-visible {
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
 }
 
 @media (prefers-reduced-motion: reduce) {
