@@ -1,0 +1,33 @@
+<section class="auth-shell">
+  <div class="auth-card">
+    <div class="auth-brand">NoobToDev</div>
+    <p class="eyebrow">Bem-vindo de volta</p>
+    <h1>Entrar</h1>
+
+    <div *ngIf="errorMessage()" class="alert alert-danger" role="alert">
+      {{ errorMessage() }}
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="mb-3">
+        <label for="login-email" class="form-label">E-mail</label>
+        <input id="login-email" type="email" class="form-control" formControlName="email" placeholder="ana@teste.com" />
+      </div>
+
+      <div class="mb-3">
+        <label for="login-senha" class="form-label">Senha</label>
+        <input id="login-senha" type="password" class="form-control" formControlName="senha" placeholder="••••••" />
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg w-100" [disabled]="loading() || form.invalid">
+        <span *ngIf="loading()">Entrando...</span>
+        <span *ngIf="!loading()">Entrar</span>
+      </button>
+    </form>
+
+    <p class="auth-switch">
+      Ainda não tem conta?
+      <a routerLink="/register">Cadastre-se</a>
+    </p>
+  </div>
+</section>

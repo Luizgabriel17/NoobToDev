@@ -1,3 +1,77 @@
-/* You can add global styles to this file, and also import other style files */
+@import 'bootstrap/dist/css/bootstrap.min.css';
 
-@import 'tailwindcss';
+:root {
+  --brand-primary: #3b82f6;
+  --brand-purple: #8b5cf6;
+  --brand-success: #22c55e;
+  --text-dark: #0f172a;
+  --text-muted: #475569;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: #f8fafc;
+  color: var(--text-dark);
+}
+
+img {
+  max-width: 100%;
+}
+
+code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  background: rgba(148, 163, 184, 0.12);
+  border-radius: 0.45rem;
+  padding: 0.15rem 0.45rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.btn {
+  border-radius: 999px;
+  font-weight: 700;
+  padding-inline: 1.35rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-purple));
+  border: none;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  border: none;
+}
+
+.btn-outline-primary {
+  border-width: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

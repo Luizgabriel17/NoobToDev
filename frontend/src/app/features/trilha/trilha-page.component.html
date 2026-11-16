@@ -1,0 +1,85 @@
+<header class="topbar">
+  <div class="container fluid-container d-flex align-items-center justify-content-between gap-3 py-3">
+    <div class="brand-wrap">
+      <span class="brand-pill">NoobToDev</span>
+    </div>
+
+    <div class="topbar-actions d-flex align-items-center gap-2">
+      <button type="button" class="btn btn-light btn-sm" (click)="abrirPerfil()">
+        Perfil
+      </button>
+      <button type="button" class="btn btn-outline-light btn-sm" (click)="logout()">
+        Sair
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="container py-4">
+  <div class="page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+    <div>
+      <p class="eyebrow">Aventura</p>
+      <h1 class="page-title">Trilha de aprendizado</h1>
+    </div>
+
+    <div class="xp-summary d-flex align-items-center gap-3 px-3 py-2">
+      <span class="label">XP total</span>
+      <strong>{{ usuario()?.xpTotal ?? 0 }}</strong>
+    </div>
+  </div>
+
+  <div *ngIf="loading()" class="loading-box">
+    <div class="spinner-border text-primary" role="status" aria-label="Carregando trilhas"></div>
+    <span>Carregando trilha...</span>
+  </div>
+
+  <div *ngIf="error()" class="alert alert-warning" role="alert">
+    {{ error() }}
+  </div>
+
+  <section *ngFor="let trilha of trilhas()" class="trilha-card mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+      <div>
+        <p class="eyebrow">{{ trilha.linguagem.nome }}</p>
+        <h2 class="mb-0">{{ trilha.titulo }}</h2>
+      </div>
+
+      <div class="progress-summary">
+        <div class="progress-label">
+          <span>{{ trilha.progresso.concluidas }}/{{ trilha.progresso.total }} lições</span>
+          <span>{{ trilha.progresso.percentual }}%</span>
+        </div>
+        <div class="progress" aria-label="Progresso da trilha">
+          <div class="progress-bar" [style.width.%]="trilha.progresso.percentual"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngFor="let modulo of trilha.modulos" class="modulo-block mb-4">
+      <h3>{{ modulo.titulo }}</h3>
+
+      <div class="lesson-track">
+        <button
+          *ngFor="let licao of modulo.licoes; let index = index"
+          type="button"
+          class="lesson-node"
+          [ngClass]="{
+            'is-completed': licao.status === 'CONCLUIDA',
+            'is-available': licao.status === 'DISPONIVEL',
+            'is-blocked': licao.status === 'BLOQUEADA'
+          }"
+          [disabled]="licao.status === 'BLOQUEADA'"
+          [attr.aria-label]="licao.titulo + ' - ' + licao.status"
+          [title]="licao.status === 'BLOQUEADA' ? getMotivoBloqueio() : 'Abrir lição'"
+          [routerLink]="licao.status === 'BLOQUEADA' ? undefined : ['/licao', licao.id]"
+        >
+          <span class="lesson-node-order">{{ index + 1 }}</span>
+          <span class="lesson-node-title">{{ licao.titulo }}</span>
+          <span class="lesson-node-state">
+            {{ licao.status === 'CONCLUIDA' ? 'Concluída' : licao.status === 'DISPONIVEL' ? 'Disponível' : 'Bloqueada' }}
+          </span>
+        </button>
+      </div>
+    </div>
+  </section>
+</main>
