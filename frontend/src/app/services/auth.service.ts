@@ -16,7 +16,6 @@ import { mensagemDeErro } from '../core/error.util';
 import {
   AuthResponse,
   LoginPayload,
-  PapelUsuario,
   RegisterPayload,
   Usuario,
 } from '../models/auth';
