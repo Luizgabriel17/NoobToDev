@@ -1,0 +1,142 @@
+<header class="lesson-topbar">
+  <div class="container d-flex align-items-center justify-content-between gap-3 py-3">
+    <button type="button" class="btn btn-outline-light btn-sm" (click)="voltarParaTrilha()">
+      ← Voltar à trilha
+    </button>
+
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-light text-dark">XP {{ usuario()?.xpTotal ?? 0 }}</span>
+      <button type="button" class="btn btn-light btn-sm" (click)="sair()">Sair</button>
+    </div>
+  </div>
+</header>
+
+<main class="container lesson-shell py-4">
+  <div *ngIf="loading()" class="loading-box">
+    <div class="spinner-border text-primary" role="status" aria-label="Carregando lição"></div>
+    <span>Carregando lição...</span>
+  </div>
+
+  <div *ngIf="error()" class="alert alert-warning" role="alert">
+    {{ error() }}
+  </div>
+
+  <ng-container *ngIf="!loading() && licao() as currentLicao">
+    <div *ngIf="resultadoFinal(); else desafioTemplate" class="result-card">
+      <div class="result-badge">Resultado</div>
+      <h1>Lição concluída</h1>
+      <p class="summary-text">Você acertou {{ resultadoFinal()?.acertos ?? 0 }} de {{ resultadoFinal()?.total ?? 0 }} desafios.</p>
+      <div class="result-metrics">
+        <div class="metric-card">
+          <span class="metric-label">XP ganho</span>
+          <strong>{{ resultadoFinal()?.xpGanho ?? 0 }}</strong>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">XP total</span>
+          <strong>{{ usuario()?.xpTotal ?? 0 }}</strong>
+        </div>
+      </div>
+
+      <div class="result-actions d-flex flex-wrap gap-3 justify-content-center mt-4">
+        <button type="button" class="btn btn-primary btn-lg" (click)="voltarParaTrilha()">
+          Voltar à trilha
+        </button>
+        <button
+          *ngIf="resultadoFinal()?.proximaLicaoId"
+          type="button"
+          class="btn btn-outline-primary btn-lg"
+          (click)="continuar()"
+        >
+          Próxima lição
+        </button>
+      </div>
+    </div>
+
+    <ng-template #desafioTemplate>
+      <div class="lesson-card">
+        <div class="lesson-progress-header d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+          <div>
+            <p class="eyebrow">{{ currentLicao.moduloTitulo }}</p>
+            <h1>{{ currentLicao.titulo }}</h1>
+          </div>
+          <div class="progress-summary">
+            <div class="progress-label">
+              <span>Desafio {{ indiceAtual() + 1 }}</span>
+              <span>{{ indiceAtual() + 1 }}/{{ currentLicao.desafios.length }}</span>
+            </div>
+            <div class="progress" aria-label="Progresso da lição">
+              <div class="progress-bar" [style.width.%]="((indiceAtual() + 1) / currentLicao.desafios.length) * 100"></div>
+            </div>
+          </div>
+        </div>
+
+        <section class="challenge-card" *ngIf="desafioAtual() as desafio">
+          <p class="challenge-type">{{ desafio.tipo }}</p>
+          <h2><code>{{ desafio.enunciado }}</code></h2>
+
+          <div *ngIf="desafio.tipo === 'ESCOLHA_UNICA'" class="option-list">
+            <button
+              *ngFor="let opcao of desafio.opcoes; let idx = index"
+              type="button"
+              class="option-card"
+              [class.selected]="respostaAtual() === opcao.id"
+              (click)="selecionarOpcao(opcao.id)"
+              [attr.aria-pressed]="respostaAtual() === opcao.id"
+            >
+              <span class="option-index">{{ idx + 1 }}</span>
+              <code>{{ opcao.texto }}</code>
+            </button>
+          </div>
+
+          <div *ngIf="desafio.tipo === 'ORDENACAO'" class="ordering-panel">
+            <div
+              cdkDropList
+              class="order-list"
+              (cdkDropListDropped)="drop($event)"
+              aria-label="Lista de blocos para ordenar"
+            >
+              <div
+                *ngFor="let opcaoId of respostaAtual() as ordemAtual; let index = index"
+                class="order-item"
+                cdkDrag
+                [attr.aria-label]="'Bloco ' + (index + 1)"
+              >
+                <span class="drag-handle" cdkDragHandle aria-label="Mover bloco">⋮⋮</span>
+                <code>{{ getOpcaoTextoPorId(opcaoId) }}</code>
+                <div class="move-controls">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="moverItem(index, -1)" aria-label="Subir bloco">
+                    ↑
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="moverItem(index, 1)" aria-label="Descer bloco">
+                    ↓
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div *ngIf="feedback() as feedbackAtual" class="feedback-banner" [ngClass]="{ 'is-success': feedbackAtual.acertou, 'is-error': !feedbackAtual.acertou }" aria-live="polite">
+          <strong>{{ feedbackAtual.acertou ? 'Resposta correta!' : 'Resposta incorreta.' }}</strong>
+          <p *ngIf="feedbackAtual.acertou">
+            +{{ feedbackAtual.xpGanho }} XP
+          </p>
+          <p *ngIf="!feedbackAtual.acertou">
+            Resposta correta: <code>{{ getRespostaCorretaTexto() }}</code>
+          </p>
+          <p>{{ feedbackAtual.explicacao }}</p>
+        </div>
+
+        <div class="action-row d-flex justify-content-between align-items-center mt-4 gap-3">
+          <button type="button" class="btn btn-primary btn-lg" [disabled]="!podeVerificar()" (click)="verificarResposta()">
+            Verificar Resposta
+          </button>
+
+          <button *ngIf="feedback()" type="button" class="btn btn-success btn-lg" (click)="continuar()">
+            Continuar
+          </button>
+        </div>
+      </div>
+    </ng-template>
+  </ng-container>
+</main>

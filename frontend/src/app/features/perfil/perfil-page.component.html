@@ -1,0 +1,73 @@
+<header class="topbar">
+  <div class="container d-flex align-items-center justify-content-between py-3">
+    <button type="button" class="btn btn-outline-light btn-sm" (click)="voltarParaTrilha()">
+      ← Voltar à trilha
+    </button>
+
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-light text-dark">XP {{ usuario()?.xpTotal ?? 0 }}</span>
+      <button type="button" class="btn btn-light btn-sm" (click)="sair()">Sair</button>
+    </div>
+  </div>
+</header>
+
+<main class="container py-4">
+  <div class="page-header mb-4">
+    <p class="eyebrow">Perfil</p>
+    <h1>{{ perfil()?.nome || 'Carregando...' }}</h1>
+  </div>
+
+  <div *ngIf="loading()" class="loading-box">
+    <div class="spinner-border text-primary" role="status" aria-label="Carregando perfil"></div>
+    <span>Carregando perfil...</span>
+  </div>
+
+  <div *ngIf="error()" class="alert alert-warning" role="alert">
+    {{ error() }}
+  </div>
+
+  <section *ngIf="perfil() as dados" class="profile-card">
+    <div class="row g-4 align-items-stretch">
+      <div class="col-lg-4">
+        <div class="profile-summary">
+          <div class="avatar">{{ dados.nome.charAt(0).toUpperCase() }}</div>
+          <h2>{{ dados.nome }}</h2>
+          <p>{{ dados.email }}</p>
+          <div class="xp-chip">{{ dados.xpTotal }} XP</div>
+        </div>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span class="stat-label">Lições concluídas</span>
+            <strong>{{ dados.licoesConcluidas }}</strong>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Total de lições</span>
+            <strong>{{ dados.totalLicoes }}</strong>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Data de entrada</span>
+            <strong>{{ dados.criadoEm | date: 'dd/MM/yyyy' }}</strong>
+          </div>
+        </div>
+
+        <div class="trilha-progress mt-4">
+          <h3>Progresso por trilha</h3>
+
+          <div *ngFor="let trilha of dados.trilhas" class="trail-row">
+            <div class="trail-head">
+              <span>{{ trilha.titulo }}</span>
+              <strong>{{ trilha.percentual }}%</strong>
+            </div>
+            <div class="progress" aria-label="Progresso por trilha">
+              <div class="progress-bar" [style.width.%]="trilha.percentual"></div>
+            </div>
+            <small>{{ trilha.concluidas }} de {{ trilha.total }} lições concluídas</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

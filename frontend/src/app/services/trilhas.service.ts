@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { catchError, Observable, of, tap } from 'rxjs';
 
 import { API_BASE_URL } from '../core/api.config';
@@ -46,7 +46,7 @@ const mockTrilhas: Trilha[] = [
 
 @Injectable({ providedIn: 'root' })
 export class TrilhasService {
-  private readonly http = new HttpClient();
+  private readonly http = inject(HttpClient);
 
   readonly trilhas = signal<Trilha[]>([]);
   readonly loading = signal(false);

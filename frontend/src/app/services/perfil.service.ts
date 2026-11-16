@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { catchError, Observable, of, tap } from 'rxjs';
 
 import { API_BASE_URL } from '../core/api.config';
@@ -22,7 +22,7 @@ const mockPerfil: PerfilUsuario = {
 
 @Injectable({ providedIn: 'root' })
 export class PerfilService {
-  private readonly http = new HttpClient();
+  private readonly http = inject(HttpClient);
 
   readonly perfil = signal<PerfilUsuario | null>(null);
   readonly loading = signal(false);

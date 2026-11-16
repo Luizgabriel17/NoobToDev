@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, map, Observable, of, tap, throwError } from 'rxjs';
+import { catchError, finalize, map, Observable, of, tap, throwError } from 'rxjs';
 
 import { API_BASE_URL, STORAGE_KEYS } from '../core/api.config';
 import { mensagemDeErro } from '../core/error.util';
@@ -15,8 +15,8 @@ const mockUsers: Usuario[] = [
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly http = new HttpClient();
-  private readonly router = new Router();
+  private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
 
   readonly user = signal<Usuario | null>(this.restoreUser());
   readonly token = signal<string | null>(this.restoreToken());
@@ -28,9 +28,11 @@ export class AuthService {
     this.loading.set(true);
     this.mensagem.set(null);
 
-    const fallback = mockUsers.find((user) => user.email.toLowerCase() === payload.email.toLowerCase() && user.email !== 'admin');
+    const fallback = mockUsers.find(
+      (user) => user.email.toLowerCase() === payload.email.toLowerCase() && payload.senha === '123456',
+    );
 
-    if (fallback && payload.senha === '123456') {
+    if (fallback) {
       const session: AuthResponse = {
         accessToken: `mock-token-${fallback.id}`,
         usuario: fallback,
@@ -45,26 +47,11 @@ export class AuthService {
       tap((response) => this.persistSession(response)),
       map((response) => response.usuario),
       catchError((error) => {
-        const fallbackUser = mockUsers.find(
-          (user) => user.email.toLowerCase() === payload.email.toLowerCase() && payload.senha === '123456',
-        );
-
-        if (fallbackUser) {
-          const session: AuthResponse = {
-            accessToken: `mock-token-${fallbackUser.id}`,
-            usuario: fallbackUser,
-          };
-          this.persistSession(session);
-          this.loading.set(false);
-          return of(fallbackUser);
-        }
-
         const message = mensagemDeErro(error);
         this.mensagem.set(message);
-        this.loading.set(false);
         return throwError(() => new Error(message));
       }),
-      finalizer(() => this.loading.set(false)),
+      finalize(() => this.loading.set(false)),
     );
   }
 
@@ -96,10 +83,9 @@ export class AuthService {
       catchError((error) => {
         const message = mensagemDeErro(error);
         this.mensagem.set(message);
-        this.loading.set(false);
         return throwError(() => new Error(message));
       }),
-      finalizer(() => this.loading.set(false)),
+      finalize(() => this.loading.set(false)),
     );
   }
 
@@ -142,22 +128,4 @@ export class AuthService {
       return null;
     }
   }
-}
-
-function finalizer<T>(callback: () => void): (source: Observable<T>) => Observable<T> {
-  return (source) => new Observable<T>((subscriber) => {
-    const subscription = source.subscribe({
-      next: (value) => subscriber.next(value),
-      error: (error) => {
-        callback();
-        subscriber.error(error);
-      },
-      complete: () => {
-        callback();
-        subscriber.complete();
-      },
-    });
-
-    return () => subscription.unsubscribe();
-  });
 }
