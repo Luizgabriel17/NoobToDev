@@ -9,7 +9,10 @@ import {
   ChallengeAnswer,
   ProgressService,
 } from '../progress/progress.service';
-import { RespostaDesafioDto } from './dto/resposta-desafio.dto';
+import {
+  RespostaDesafioDto,
+  RespostaDesafioResponseDto,
+} from './dto/resposta-desafio.dto';
 
 @Injectable()
 export class DesafiosService {
@@ -22,7 +25,7 @@ export class DesafiosService {
     usuarioId: number,
     desafioId: number,
     dto: RespostaDesafioDto,
-  ) {
+  ): Promise<RespostaDesafioResponseDto> {
     const desafio = await this.prisma.desafio.findUnique({
       where: { id: desafioId },
       select: {

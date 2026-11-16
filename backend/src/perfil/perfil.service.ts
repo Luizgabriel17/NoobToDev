@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TrilhasService } from '../trilhas/trilhas.service';
+import type { PerfilResponseDto } from './dto/perfil.dto';
 
 @Injectable()
 export class PerfilService {
@@ -9,7 +10,7 @@ export class PerfilService {
     private readonly trilhas: TrilhasService,
   ) {}
 
-  async findOne(usuarioId: number) {
+  async findOne(usuarioId: number): Promise<PerfilResponseDto> {
     const [usuario, trilhas] = await Promise.all([
       this.prisma.usuario.findUnique({
         where: { id: usuarioId },

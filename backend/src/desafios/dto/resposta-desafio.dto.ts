@@ -1,5 +1,22 @@
 import { ArrayNotEmpty, IsArray, IsInt, IsOptional, Min } from 'class-validator';
 
+export class LicaoConcluidaResponseDto {
+  concluida!: true;
+  acertos!: number;
+  total!: number;
+  xpGanho!: number;
+  proximaLicaoId!: number | null;
+}
+
+export class RespostaDesafioResponseDto {
+  acertou!: boolean;
+  xpGanho!: number;
+  explicacao!: string | null;
+  respostaCorreta!: { opcaoId: number } | { ordem: number[] };
+  xpTotal!: number;
+  licao!: LicaoConcluidaResponseDto | null;
+}
+
 export class RespostaDesafioDto {
   @IsOptional()
   @IsInt({ message: 'A opção deve ser um número inteiro.' })

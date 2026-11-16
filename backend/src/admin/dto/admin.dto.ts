@@ -19,6 +19,7 @@ import {
 export class CreateLinguagemDto {
   @IsString({ message: 'O nome da linguagem deve ser um texto.' })
   @IsNotEmpty({ message: 'Informe o nome da linguagem.' })
+  @Matches(/\S/, { message: 'O nome da linguagem não pode ficar vazio.' })
   nome!: string;
 
   @IsString({ message: 'O slug deve ser um texto.' })
@@ -41,6 +42,7 @@ export class CreateTrilhaDto {
 
   @IsString({ message: 'O título deve ser um texto.' })
   @IsNotEmpty({ message: 'Informe o título da trilha.' })
+  @Matches(/\S/, { message: 'O título da trilha não pode ficar vazio.' })
   titulo!: string;
 
   @IsInt({ message: 'A ordem deve ser um número inteiro.' })
@@ -57,6 +59,7 @@ export class CreateModuloDto {
 
   @IsString({ message: 'O título deve ser um texto.' })
   @IsNotEmpty({ message: 'Informe o título do módulo.' })
+  @Matches(/\S/, { message: 'O título do módulo não pode ficar vazio.' })
   titulo!: string;
 
   @IsInt({ message: 'A ordem deve ser um número inteiro.' })
@@ -73,6 +76,7 @@ export class CreateLicaoDto {
 
   @IsString({ message: 'O título deve ser um texto.' })
   @IsNotEmpty({ message: 'Informe o título da lição.' })
+  @Matches(/\S/, { message: 'O título da lição não pode ficar vazio.' })
   titulo!: string;
 
   @IsInt({ message: 'A ordem deve ser um número inteiro.' })
@@ -89,6 +93,7 @@ export class UpdateLicaoDto extends PartialType(CreateLicaoDto) {}
 export class CreateOpcaoDto {
   @IsString({ message: 'O texto da opção deve ser um texto.' })
   @IsNotEmpty({ message: 'Informe o texto da opção.' })
+  @Matches(/\S/, { message: 'O texto da opção não pode ficar vazio.' })
   texto!: string;
 
   @IsOptional()
@@ -111,10 +116,12 @@ export class CreateDesafioDto {
 
   @IsString({ message: 'O enunciado deve ser um texto.' })
   @IsNotEmpty({ message: 'Informe o enunciado do desafio.' })
+  @Matches(/\S/, { message: 'O enunciado não pode ficar vazio.' })
   enunciado!: string;
 
   @IsOptional()
   @IsString({ message: 'A explicação deve ser um texto.' })
+  @Matches(/\S/, { message: 'A explicação não pode ficar vazia.' })
   explicacao?: string;
 
   @IsOptional()

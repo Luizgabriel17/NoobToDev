@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { TipoDesafio } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProgressService } from '../progress/progress.service';
+import type { LicaoResponseDto } from './dto/licao.dto';
 
 @Injectable()
 export class LicoesService {
@@ -10,7 +11,7 @@ export class LicoesService {
     private readonly progress: ProgressService,
   ) {}
 
-  async findOne(usuarioId: number, id: number) {
+  async findOne(usuarioId: number, id: number): Promise<LicaoResponseDto> {
     const licao = await this.prisma.licao.findUnique({
       where: { id },
       select: {

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProgressService } from '../progress/progress.service';
+import type { TrilhaResponseDto } from './dto/trilha.dto';
 
 @Injectable()
 export class TrilhasService {
@@ -9,7 +10,7 @@ export class TrilhasService {
     private readonly progress: ProgressService,
   ) {}
 
-  async findAll(usuarioId: number) {
+  async findAll(usuarioId: number): Promise<TrilhaResponseDto[]> {
     const trilhas = await this.prisma.trilha.findMany({
       where: { linguagem: { ativa: true } },
       select: {
