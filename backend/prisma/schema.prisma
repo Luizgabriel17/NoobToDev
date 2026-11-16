@@ -1,222 +1,222 @@
-// NoobToDev - schema.prisma
-// Banco: PostgreSQL
+  // NoobToDev - schema.prisma
+  // Banco: PostgreSQL
 
-generator client {
-  provider = "prisma-client-js"
-}
+  generator client {
+    provider = "prisma-client-js"
+  }
 
-datasource db {
-  provider = "postgresql"
-}
+  datasource db {
+    provider = "postgresql"
+  }
 
-// ---------------------------------------------------------------
-// Enums
-// ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // Enums
+  // ---------------------------------------------------------------
 
-enum Papel {
-  ESTUDANTE
-  ADMIN
-}
+  enum Papel {
+    ESTUDANTE
+    ADMIN
+  }
 
-// Novos tipos de desafio entram aqui (ex.: EDITOR_CODIGO)
-enum TipoDesafio {
-  ESCOLHA_UNICA
-  ORDENACAO
-}
+  // Novos tipos de desafio entram aqui (ex.: EDITOR_CODIGO)
+  enum TipoDesafio {
+    ESCOLHA_UNICA
+    ORDENACAO
+  }
 
-enum StatusLicao {
-  DISPONIVEL
-  BLOQUEADA
-  CONCLUIDA
-}
+  enum StatusLicao {
+    DISPONIVEL
+    BLOQUEADA
+    CONCLUIDA
+  }
 
-// ---------------------------------------------------------------
-// Usuários
-// ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // Usuários
+  // ---------------------------------------------------------------
 
-model Usuario {
-  id           Int      @id @default(autoincrement())
-  nome         String
-  email        String   @unique
-  senhaHash    String   @map("senha_hash")
-  papel        Papel    @default(ESTUDANTE)
-  xpTotal      Int      @default(0) @map("xp_total")
-  criadoEm     DateTime @default(now()) @map("criado_em")
-  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  model Usuario {
+    id           Int      @id @default(autoincrement())
+    nome         String
+    email        String   @unique
+    senhaHash    String   @map("senha_hash")
+    papel        Papel    @default(ESTUDANTE)
+    xpTotal      Int      @default(0) @map("xp_total")
+    criadoEm     DateTime @default(now()) @map("criado_em")
+    atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  progressos ProgressoLicao[]
-  tentativas Tentativa[]
-  atividades AtividadeDiaria[]
-  conquistas UsuarioConquista[]
+    progressos ProgressoLicao[]
+    tentativas Tentativa[]
+    atividades AtividadeDiaria[]
+    conquistas UsuarioConquista[]
 
-  @@map("usuarios")
-}
+    @@map("usuarios")
+  }
 
-// ---------------------------------------------------------------
-// Conteúdo: Linguagem > Trilha > Módulo > Lição > Desafio > Opção
-// ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // Conteúdo: Linguagem > Trilha > Módulo > Lição > Desafio > Opção
+  // ---------------------------------------------------------------
 
-model Linguagem {
-  id     Int     @id @default(autoincrement())
-  nome   String
-  slug   String  @unique
-  ativa  Boolean @default(true)
+  model Linguagem {
+    id     Int     @id @default(autoincrement())
+    nome   String
+    slug   String  @unique
+    ativa  Boolean @default(true)
 
-  trilhas Trilha[]
+    trilhas Trilha[]
 
-  @@map("linguagens")
-}
+    @@map("linguagens")
+  }
 
-model Trilha {
-  id          Int    @id @default(autoincrement())
-  linguagemId Int    @map("linguagem_id")
-  titulo      String
-  ordem       Int
+  model Trilha {
+    id          Int    @id @default(autoincrement())
+    linguagemId Int    @map("linguagem_id")
+    titulo      String
+    ordem       Int
 
-  linguagem Linguagem @relation(fields: [linguagemId], references: [id], onDelete: Cascade)
-  modulos   Modulo[]
+    linguagem Linguagem @relation(fields: [linguagemId], references: [id], onDelete: Cascade)
+    modulos   Modulo[]
 
-  @@unique([linguagemId, ordem])
-  @@map("trilhas")
-}
+    @@unique([linguagemId, ordem])
+    @@map("trilhas")
+  }
 
-model Modulo {
-  id       Int    @id @default(autoincrement())
-  trilhaId Int    @map("trilha_id")
-  titulo   String
-  ordem    Int
+  model Modulo {
+    id       Int    @id @default(autoincrement())
+    trilhaId Int    @map("trilha_id")
+    titulo   String
+    ordem    Int
 
-  trilha Trilha  @relation(fields: [trilhaId], references: [id], onDelete: Cascade)
-  licoes Licao[]
+    trilha Trilha  @relation(fields: [trilhaId], references: [id], onDelete: Cascade)
+    licoes Licao[]
 
-  @@unique([trilhaId, ordem])
-  @@map("modulos")
-}
+    @@unique([trilhaId, ordem])
+    @@map("modulos")
+  }
 
-model Licao {
-  id        Int     @id @default(autoincrement())
-  moduloId  Int     @map("modulo_id")
-  titulo    String
-  ordem     Int
-  publicada Boolean @default(false)
+  model Licao {
+    id        Int     @id @default(autoincrement())
+    moduloId  Int     @map("modulo_id")
+    titulo    String
+    ordem     Int
+    publicada Boolean @default(false)
 
-  modulo    Modulo           @relation(fields: [moduloId], references: [id], onDelete: Cascade)
-  desafios  Desafio[]
-  progressos ProgressoLicao[]
+    modulo    Modulo           @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+    desafios  Desafio[]
+    progressos ProgressoLicao[]
 
-  @@unique([moduloId, ordem])
-  @@map("licoes")
-}
+    @@unique([moduloId, ordem])
+    @@map("licoes")
+  }
 
-model Desafio {
-  id         Int         @id @default(autoincrement())
-  licaoId    Int         @map("licao_id")
-  tipo       TipoDesafio
-  enunciado  String      @db.Text
-  explicacao String?     @db.Text
-  // Configuração específica do tipo (ex.: código inicial de um editor)
-  conteudo   Json?
-  // Valor inicial de exemplo; ajustar conforme a regra de pontuação do grupo
-  pontos     Int         @default(10)
-  ordem      Int
+  model Desafio {
+    id         Int         @id @default(autoincrement())
+    licaoId    Int         @map("licao_id")
+    tipo       TipoDesafio
+    enunciado  String      @db.Text
+    explicacao String?     @db.Text
+    // Configuração específica do tipo (ex.: código inicial de um editor)
+    conteudo   Json?
+    // Valor inicial de exemplo; ajustar conforme a regra de pontuação do grupo
+    pontos     Int         @default(10)
+    ordem      Int
 
-  licao      Licao       @relation(fields: [licaoId], references: [id], onDelete: Cascade)
-  opcoes     Opcao[]
-  tentativas Tentativa[]
+    licao      Licao       @relation(fields: [licaoId], references: [id], onDelete: Cascade)
+    opcoes     Opcao[]
+    tentativas Tentativa[]
 
-  @@unique([licaoId, ordem])
-  @@map("desafios")
-}
+    @@unique([licaoId, ordem])
+    @@map("desafios")
+  }
 
-model Opcao {
-  id             Int     @id @default(autoincrement())
-  desafioId      Int     @map("desafio_id")
-  texto          String
-  // Escolha única: marca a opção correta
-  correta        Boolean @default(false)
-  // Ordenação: posição que o bloco ocupa na sequência correta
-  posicaoCorreta Int?    @map("posicao_correta")
+  model Opcao {
+    id             Int     @id @default(autoincrement())
+    desafioId      Int     @map("desafio_id")
+    texto          String
+    // Escolha única: marca a opção correta
+    correta        Boolean @default(false)
+    // Ordenação: posição que o bloco ocupa na sequência correta
+    posicaoCorreta Int?    @map("posicao_correta")
 
-  desafio Desafio @relation(fields: [desafioId], references: [id], onDelete: Cascade)
+    desafio Desafio @relation(fields: [desafioId], references: [id], onDelete: Cascade)
 
-  @@index([desafioId])
-  @@map("opcoes")
-}
+    @@index([desafioId])
+    @@map("opcoes")
+  }
 
-// ---------------------------------------------------------------
-// Progresso e histórico do estudante
-// ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // Progresso e histórico do estudante
+  // ---------------------------------------------------------------
 
-model ProgressoLicao {
-  id          Int         @id @default(autoincrement())
-  usuarioId   Int         @map("usuario_id")
-  licaoId     Int         @map("licao_id")
-  status      StatusLicao @default(DISPONIVEL)
-  xpGanho     Int         @default(0) @map("xp_ganho")
-  concluidaEm DateTime?   @map("concluida_em")
+  model ProgressoLicao {
+    id          Int         @id @default(autoincrement())
+    usuarioId   Int         @map("usuario_id")
+    licaoId     Int         @map("licao_id")
+    status      StatusLicao @default(DISPONIVEL)
+    xpGanho     Int         @default(0) @map("xp_ganho")
+    concluidaEm DateTime?   @map("concluida_em")
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  licao   Licao   @relation(fields: [licaoId], references: [id], onDelete: Restrict)
+    usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+    licao   Licao   @relation(fields: [licaoId], references: [id], onDelete: Restrict)
 
-  @@unique([usuarioId, licaoId])
-  @@index([licaoId])
-  @@map("progresso_licao")
-}
+    @@unique([usuarioId, licaoId])
+    @@index([licaoId])
+    @@map("progresso_licao")
+  }
 
-model Tentativa {
-  id        Int      @id @default(autoincrement())
-  usuarioId Int      @map("usuario_id")
-  desafioId Int      @map("desafio_id")
-  // Escolha única: id da opção; ordenação: lista de ids na ordem enviada
-  resposta  Json
-  acertou   Boolean
-  criadaEm  DateTime @default(now()) @map("criada_em")
+  model Tentativa {
+    id        Int      @id @default(autoincrement())
+    usuarioId Int      @map("usuario_id")
+    desafioId Int      @map("desafio_id")
+    // Escolha única: id da opção; ordenação: lista de ids na ordem enviada
+    resposta  Json
+    acertou   Boolean
+    criadaEm  DateTime @default(now()) @map("criada_em")
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  desafio Desafio @relation(fields: [desafioId], references: [id], onDelete: Restrict)
+    usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+    desafio Desafio @relation(fields: [desafioId], references: [id], onDelete: Restrict)
 
-  @@index([usuarioId, desafioId])
-  @@index([desafioId])
-  @@map("tentativas")
-}
+    @@index([usuarioId, desafioId])
+    @@index([desafioId])
+    @@map("tentativas")
+  }
 
-// ---------------------------------------------------------------
-// Evoluções futuras: sequência diária, ranking semanal e conquistas
-// ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // Evoluções futuras: sequência diária, ranking semanal e conquistas
+  // ---------------------------------------------------------------
 
-model AtividadeDiaria {
-  id               Int      @id @default(autoincrement())
-  usuarioId        Int      @map("usuario_id")
-  dia              DateTime @db.Date
-  xpDia            Int      @default(0) @map("xp_dia")
-  licoesConcluidas Int      @default(0) @map("licoes_concluidas")
+  model AtividadeDiaria {
+    id               Int      @id @default(autoincrement())
+    usuarioId        Int      @map("usuario_id")
+    dia              DateTime @db.Date
+    xpDia            Int      @default(0) @map("xp_dia")
+    licoesConcluidas Int      @default(0) @map("licoes_concluidas")
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+    usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
-  @@unique([usuarioId, dia])
-  @@map("atividade_diaria")
-}
+    @@unique([usuarioId, dia])
+    @@map("atividade_diaria")
+  }
 
-model Conquista {
-  id        Int    @id @default(autoincrement())
-  codigo    String @unique
-  titulo    String
-  descricao String
-  xpBonus   Int    @default(0) @map("xp_bonus")
+  model Conquista {
+    id        Int    @id @default(autoincrement())
+    codigo    String @unique
+    titulo    String
+    descricao String
+    xpBonus   Int    @default(0) @map("xp_bonus")
 
-  usuarios UsuarioConquista[]
+    usuarios UsuarioConquista[]
 
-  @@map("conquistas")
-}
+    @@map("conquistas")
+  }
 
-model UsuarioConquista {
-  usuarioId     Int      @map("usuario_id")
-  conquistaId   Int      @map("conquista_id")
-  conquistadaEm DateTime @default(now()) @map("conquistada_em")
+  model UsuarioConquista {
+    usuarioId     Int      @map("usuario_id")
+    conquistaId   Int      @map("conquista_id")
+    conquistadaEm DateTime @default(now()) @map("conquistada_em")
 
-  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  conquista Conquista @relation(fields: [conquistaId], references: [id], onDelete: Cascade)
+    usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+    conquista Conquista @relation(fields: [conquistaId], references: [id], onDelete: Cascade)
 
-  @@id([usuarioId, conquistaId])
-  @@map("usuario_conquista")
-}
+    @@id([usuarioId, conquistaId])
+    @@map("usuario_conquista")
+  }
