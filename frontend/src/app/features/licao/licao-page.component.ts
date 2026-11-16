@@ -22,6 +22,7 @@ export class LicaoPageComponent implements OnInit {
 
   readonly licao = this.licoesService.licaoAtual;
   readonly loading = this.licoesService.loading;
+  readonly submitting = this.licoesService.submitting;
   readonly error = this.licoesService.error;
   readonly usuario = this.authService.user;
   readonly indiceAtual = signal(0);
@@ -106,6 +107,7 @@ export class LicaoPageComponent implements OnInit {
 
     this.licoesService.verificarResposta(desafio.id, payload).subscribe((resultado) => {
       this.feedback.set(resultado);
+      this.authService.updateXpTotal(resultado.xpTotal);
       if (resultado.licao) {
         this.resultadoFinal.set(resultado.licao);
       }

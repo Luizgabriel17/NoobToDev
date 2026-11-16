@@ -1,9 +1,11 @@
+export type PapelUsuario = 'ESTUDANTE' | 'ADMIN';
+
 export interface Usuario {
   id: number;
   nome: string;
   email: string;
   xpTotal: number;
-  papel: string;
+  papel: PapelUsuario;
 }
 
 export interface LoginPayload {

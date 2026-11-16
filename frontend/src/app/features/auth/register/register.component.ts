@@ -20,7 +20,7 @@ export class RegisterComponent {
   readonly form = this.fb.nonNullable.group({
     nome: ['', [Validators.required, Validators.minLength(2)]],
     email: ['', [Validators.required, Validators.email]],
-    senha: ['', [Validators.required, Validators.minLength(6)]],
+    senha: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(12)]],
   });
 
   readonly loading = this.authService.loading;

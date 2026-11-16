@@ -31,18 +31,22 @@ Copie `../.env.example` para `.env` neste diretório (`backend`) e configure:
 
 - `DATABASE_URL`: URL de conexão com PostgreSQL.
 - `JWT_SECRET`: segredo forte e exclusivo para assinar tokens JWT.
-- `FRONTEND_ORIGIN`: origem do frontend permitida pelo CORS (padrão: `http://localhost:4200`).
+- `FRONTEND_ORIGIN`: origem do frontend permitida pelo CORS se o frontend chamar a API diretamente (padrão: `http://localhost:4200`).
 - `PORT`: porta HTTP (padrão: `3000`).
+- `SEED_ADMIN_EMAIL` e `SEED_ADMIN_SENHA`: opcionais; criam/promovem um administrador quando o seed é executado.
 
-Com o PostgreSQL disponível, execute as migrações e inicie a API:
+Com o PostgreSQL disponível, execute as migrações, carregue o conteúdo inicial e inicie a API:
 
 ```bash
 npm install
 npm run db:migrate
+npm run db:seed
 npm run start:dev
 ```
 
-`GET /lessons` e `GET /lessons/:id` são públicos. Criar, editar ou remover lições e todas as rotas `/users` exigem JWT de administrador. O cadastro e login ficam em `POST /auth/register` e `POST /auth/login`; `GET /auth/me` exige um token Bearer.
+Na configuração padrão, o Angular em `http://localhost:4200` encaminha `/api/*` para o backend em `http://localhost:3000`; assim, as chamadas usam o mesmo domínio e não precisam de CORS durante o desenvolvimento. Em produção, configure o servidor web para encaminhar `/api/*` ao backend (removendo o prefixo `/api`) ou adapte `frontend/src/app/core/api.config.ts` e permita a origem em `FRONTEND_ORIGIN`.
+
+O frontend e o backend usam `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `GET /trilhas`, `GET /licoes/:id`, `POST /desafios/:id/respostas` e `GET /perfil`. Requisições autenticadas enviam automaticamente `Authorization: Bearer <accessToken>`. O registro cria a conta e em seguida faz login para iniciar a sessão.
 
 ## Project setup
 

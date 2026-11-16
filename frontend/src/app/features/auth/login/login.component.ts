@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
@@ -18,13 +18,12 @@ export class LoginComponent {
   private readonly router = inject(Router);
 
   readonly form = this.fb.nonNullable.group({
-    email: ['ana@teste.com', [Validators.required, Validators.email]],
-    senha: ['123456', [Validators.required]],
+    email: ['', [Validators.required, Validators.email]],
+    senha: ['', [Validators.required]],
   });
 
   readonly loading = this.authService.loading;
   readonly errorMessage = this.authService.mensagem;
-  readonly isFormValid = computed(() => this.form.valid);
 
   submit(): void {
     if (this.form.invalid) {

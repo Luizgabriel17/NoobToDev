@@ -1,17 +1,40 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, finalize, map, Observable, of, tap, throwError } from 'rxjs';
+import {
+  catchError,
+  finalize,
+  map,
+  Observable,
+  switchMap,
+  tap,
+  throwError,
+} from 'rxjs';
 
 import { API_BASE_URL, STORAGE_KEYS } from '../core/api.config';
 import { mensagemDeErro } from '../core/error.util';
-import { AuthResponse, LoginPayload, RegisterPayload, Usuario } from '../models/auth';
+import {
+  AuthResponse,
+  LoginPayload,
+  PapelUsuario,
+  RegisterPayload,
+  Usuario,
+} from '../models/auth';
 
-const mockUsers: Usuario[] = [
-  { id: 1, nome: 'Ana', email: 'ana@teste.com', xpTotal: 40, papel: 'STUDENT' },
-  { id: 2, nome: 'Beto', email: 'beto@teste.com', xpTotal: 80, papel: 'STUDENT' },
-  { id: 3, nome: 'Nina', email: 'nina@teste.com', xpTotal: 120, papel: 'ADMIN' },
-];
+function isUsuario(value: unknown): value is Usuario {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const usuario = value as Partial<Usuario>;
+  return (
+    typeof usuario.id === 'number' &&
+    typeof usuario.nome === 'string' &&
+    typeof usuario.email === 'string' &&
+    typeof usuario.xpTotal === 'number' &&
+    (usuario.papel === 'ESTUDANTE' || usuario.papel === 'ADMIN')
+  );
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -28,88 +51,70 @@ export class AuthService {
     this.loading.set(true);
     this.mensagem.set(null);
 
-    const fallback = mockUsers.find(
-      (user) => user.email.toLowerCase() === payload.email.toLowerCase() && payload.senha === '123456',
-    );
-
-    if (fallback) {
-      const session: AuthResponse = {
-        accessToken: `mock-token-${fallback.id}`,
-        usuario: fallback,
-      };
-
-      this.persistSession(session);
-      this.loading.set(false);
-      return of(fallback);
-    }
-
-    return this.http.post<AuthResponse>(`${API_BASE_URL}/auth/login`, payload).pipe(
-      tap((response) => this.persistSession(response)),
-      map((response) => response.usuario),
-      catchError((error) => {
-        const message = mensagemDeErro(error);
-        this.mensagem.set(message);
-        return throwError(() => new Error(message));
-      }),
-      finalize(() => this.loading.set(false)),
-    );
+    return this.http
+      .post<AuthResponse>(`${API_BASE_URL}/auth/login`, payload)
+      .pipe(
+        tap((response) => this.persistSession(response)),
+        map((response) => response.usuario),
+        catchError((error: unknown) => this.handleAuthError(error)),
+        finalize(() => this.loading.set(false)),
+      );
   }
 
   register(payload: RegisterPayload): Observable<Usuario> {
     this.loading.set(true);
     this.mensagem.set(null);
 
-    const alreadyExists = mockUsers.some((user) => user.email.toLowerCase() === payload.email.toLowerCase());
-    if (!alreadyExists) {
-      const usuario: Usuario = {
-        id: Date.now(),
-        nome: payload.nome,
-        email: payload.email,
-        xpTotal: 0,
-        papel: 'STUDENT',
-      };
-      const session: AuthResponse = {
-        accessToken: `mock-token-${usuario.id}`,
-        usuario,
-      };
-      this.persistSession(session);
-      this.loading.set(false);
-      return of(usuario);
-    }
+    return this.http
+      .post<Usuario>(`${API_BASE_URL}/auth/register`, payload)
+      .pipe(
+        switchMap(() =>
+          this.http.post<AuthResponse>(`${API_BASE_URL}/auth/login`, {
+            email: payload.email,
+            senha: payload.senha,
+          }),
+        ),
+        tap((response) => this.persistSession(response)),
+        map((response) => response.usuario),
+        catchError((error: unknown) => this.handleAuthError(error)),
+        finalize(() => this.loading.set(false)),
+      );
+  }
 
-    return this.http.post<AuthResponse>(`${API_BASE_URL}/auth/register`, payload).pipe(
-      tap((response) => this.persistSession(response)),
-      map((response) => response.usuario),
-      catchError((error) => {
-        const message = mensagemDeErro(error);
-        this.mensagem.set(message);
-        return throwError(() => new Error(message));
-      }),
-      finalize(() => this.loading.set(false)),
-    );
+  updateXpTotal(xpTotal: number): void {
+    this.user.update((usuario) => (usuario ? { ...usuario, xpTotal } : usuario));
+    const usuario = this.user();
+    if (usuario && typeof window !== 'undefined') {
+      window.localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(usuario));
+    }
   }
 
   logout(): void {
-    localStorage.removeItem(STORAGE_KEYS.token);
-    localStorage.removeItem(STORAGE_KEYS.user);
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(STORAGE_KEYS.token);
+      window.localStorage.removeItem(STORAGE_KEYS.user);
+    }
     this.token.set(null);
     this.user.set(null);
-    this.router.navigate(['/login']);
+    void this.router.navigate(['/login']);
   }
 
   private persistSession(response: AuthResponse): void {
-    localStorage.setItem(STORAGE_KEYS.token, response.accessToken);
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(response.usuario));
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(STORAGE_KEYS.token, response.accessToken);
+      window.localStorage.setItem(
+        STORAGE_KEYS.user,
+        JSON.stringify(response.usuario),
+      );
+    }
     this.token.set(response.accessToken);
     this.user.set(response.usuario);
   }
 
   private restoreToken(): string | null {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
-    return localStorage.getItem(STORAGE_KEYS.token) ?? null;
+    return typeof window === 'undefined'
+      ? null
+      : (window.localStorage.getItem(STORAGE_KEYS.token) ?? null);
   }
 
   private restoreUser(): Usuario | null {
@@ -117,15 +122,30 @@ export class AuthService {
       return null;
     }
 
-    const raw = localStorage.getItem(STORAGE_KEYS.user);
+    const storage = window.localStorage;
+    const raw = storage.getItem(STORAGE_KEYS.user);
     if (!raw) {
       return null;
     }
 
     try {
-      return JSON.parse(raw) as Usuario;
+      const usuario: unknown = JSON.parse(raw);
+      if (isUsuario(usuario)) {
+        return usuario;
+      }
     } catch {
+      storage.removeItem(STORAGE_KEYS.user);
+      storage.removeItem(STORAGE_KEYS.token);
       return null;
     }
+
+    storage.removeItem(STORAGE_KEYS.user);
+    storage.removeItem(STORAGE_KEYS.token);
+    return null;
+  }
+
+  private handleAuthError(error: unknown): Observable<never> {
+    this.mensagem.set(mensagemDeErro(error));
+    return throwError(() => error);
   }
 }

@@ -13,7 +13,7 @@ export interface Desafio {
   tipo: TipoDesafio;
   enunciado: string;
   pontos: number;
-  conteudo: string | null;
+  conteudo: unknown | null;
   respondido: boolean;
   opcoes: OpcaoDesafio[];
 }

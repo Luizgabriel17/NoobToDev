@@ -1,24 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { catchError, Observable, of, tap } from 'rxjs';
+import { catchError, EMPTY, finalize, Observable, tap } from 'rxjs';
 
 import { API_BASE_URL } from '../core/api.config';
 import { mensagemDeErro } from '../core/error.util';
 import { PerfilUsuario } from '../models/perfil';
-
-const mockPerfil: PerfilUsuario = {
-  id: 1,
-  nome: 'Ana',
-  email: 'ana@teste.com',
-  xpTotal: 40,
-  licoesConcluidas: 1,
-  totalLicoes: 5,
-  criadoEm: '2026-11-15T12:00:00.000Z',
-  trilhas: [
-    { id: 1, titulo: 'Fundamentos de Desenvolvimento Web', concluidas: 1, total: 5, percentual: 20 },
-    { id: 2, titulo: 'Estilizando páginas', concluidas: 0, total: 3, percentual: 0 },
-  ],
-};
 
 @Injectable({ providedIn: 'root' })
 export class PerfilService {
@@ -33,17 +19,13 @@ export class PerfilService {
     this.error.set(null);
 
     return this.http.get<PerfilUsuario>(`${API_BASE_URL}/perfil`).pipe(
-      tap((perfil) => {
-        this.perfil.set(perfil);
-        this.loading.set(false);
+      tap((perfil) => this.perfil.set(perfil)),
+      catchError((error: unknown) => {
+        this.perfil.set(null);
+        this.error.set(mensagemDeErro(error));
+        return EMPTY;
       }),
-      catchError((error) => {
-        const message = mensagemDeErro(error);
-        this.perfil.set(mockPerfil);
-        this.error.set(`${message} Mostrando dados de demonstração.`);
-        this.loading.set(false);
-        return of(mockPerfil);
-      }),
+      finalize(() => this.loading.set(false)),
     );
   }
 }
