@@ -26,6 +26,10 @@ type AdminOption = Pick<CreateOpcaoDto, 'texto'> & {
   posicaoCorreta?: number | null;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
@@ -247,10 +251,7 @@ export class AdminService {
   }
 
   async excluirLicao(id: number) {
-    await this.checkHistory(
-      { licaoId: id },
-      { desafio: { licaoId: id } },
-    );
+    await this.checkHistory({ licaoId: id }, { desafio: { licaoId: id } });
     return this.run(
       () => this.prisma.licao.delete({ where: { id } }),
       'delete',
@@ -276,7 +277,8 @@ export class AdminService {
   }
 
   async criarDesafio(dto: CreateDesafioDto) {
-    this.validarOpcoes(dto.tipo, dto.opcoes);
+    this.validarOpcoes(dto.tipo, dto.opcoes ?? []);
+    this.validarConteudoCodigo(dto.tipo, dto.conteudo);
     return this.run(() =>
       this.prisma.desafio.create({
         data: {
@@ -287,7 +289,7 @@ export class AdminService {
           ...(dto.conteudo !== undefined ? { conteudo: dto.conteudo } : {}),
           pontos: dto.pontos,
           ordem: dto.ordem,
-          opcoes: { create: this.opcoesParaCriacao(dto.opcoes) },
+          opcoes: { create: this.opcoesParaCriacao(dto.opcoes ?? []) },
         },
         include: { opcoes: true },
       }),
@@ -304,9 +306,14 @@ export class AdminService {
     }
 
     const tipo = dto.tipo ?? atual.tipo;
-    const opcoes = dto.opcoes ?? atual.opcoes;
+    const opcoes =
+      dto.opcoes ?? (tipo === TipoDesafio.ESCRITA_CODIGO ? [] : atual.opcoes);
+    const conteudo = dto.conteudo ?? atual.conteudo;
     if (dto.tipo !== undefined || dto.opcoes !== undefined) {
       this.validarOpcoes(tipo, opcoes);
+    }
+    if (dto.tipo !== undefined || dto.conteudo !== undefined) {
+      this.validarConteudoCodigo(tipo, conteudo);
     }
 
     return this.run(
@@ -325,11 +332,13 @@ export class AdminService {
             ...(dto.conteudo !== undefined ? { conteudo: dto.conteudo } : {}),
             ...(dto.pontos !== undefined ? { pontos: dto.pontos } : {}),
             ...(dto.ordem !== undefined ? { ordem: dto.ordem } : {}),
-            ...(dto.opcoes !== undefined
+            ...(dto.opcoes !== undefined ||
+            (dto.tipo === TipoDesafio.ESCRITA_CODIGO &&
+              atual.tipo !== TipoDesafio.ESCRITA_CODIGO)
               ? {
                   opcoes: {
                     deleteMany: {},
-                    create: this.opcoesParaCriacao(dto.opcoes),
+                    create: this.opcoesParaCriacao(dto.opcoes ?? []),
                   },
                 }
               : {}),
@@ -357,6 +366,15 @@ export class AdminService {
     tipo: TipoDesafio,
     opcoes: readonly AdminOption[],
   ): void {
+    if (tipo === TipoDesafio.ESCRITA_CODIGO) {
+      if (opcoes.length > 0) {
+        throw new BadRequestException(
+          'Desafios de código não devem conter opções de múltipla escolha.',
+        );
+      }
+      return;
+    }
+
     if (opcoes.length < 2) {
       throw new BadRequestException(
         'O desafio deve conter pelo menos duas opções.',
@@ -379,6 +397,63 @@ export class AdminService {
     ) {
       throw new BadRequestException(
         'Ordenação deve ter uma posição correta única para cada opção.',
+      );
+    }
+  }
+
+  private validarConteudoCodigo(tipo: TipoDesafio, conteudo: unknown): void {
+    if (tipo !== TipoDesafio.ESCRITA_CODIGO) {
+      return;
+    }
+
+    if (
+      !isRecord(conteudo) ||
+      (conteudo['linguagem'] !== 'html' && conteudo['linguagem'] !== 'css') ||
+      typeof conteudo['orientacao'] !== 'string' ||
+      typeof conteudo['codigoInicial'] !== 'string' ||
+      !Array.isArray(conteudo['verificacoes']) ||
+      conteudo['verificacoes'].length === 0
+    ) {
+      throw new BadRequestException(
+        'Informe a linguagem, orientação, código inicial e verificações do exercício.',
+      );
+    }
+
+    const verificacoesValidas = conteudo['verificacoes'].every(
+      (verificacao: unknown) => {
+        if (!isRecord(verificacao)) {
+          return false;
+        }
+
+        if (verificacao['tipo'] === 'HTML_ELEMENT') {
+          return (
+            typeof verificacao['tag'] === 'string' &&
+            typeof verificacao['texto'] === 'string'
+          );
+        }
+        if (verificacao['tipo'] === 'HTML_ATTRIBUTE') {
+          return (
+            typeof verificacao['tag'] === 'string' &&
+            typeof verificacao['atributo'] === 'string' &&
+            typeof verificacao['valor'] === 'string'
+          );
+        }
+        if (verificacao['tipo'] === 'CSS_DECLARATION') {
+          return (
+            typeof verificacao['seletor'] === 'string' &&
+            typeof verificacao['propriedade'] === 'string' &&
+            typeof verificacao['valor'] === 'string'
+          );
+        }
+        if (verificacao['tipo'] === 'CSS_MEDIA_QUERY') {
+          return typeof verificacao['condicao'] === 'string';
+        }
+        return false;
+      },
+    );
+    if (!verificacoesValidas) {
+      throw new BadRequestException(
+        'As verificações do exercício de código são inválidas.',
       );
     }
   }
@@ -427,16 +502,16 @@ export class AdminService {
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ConflictException(
-            'Já existe um registro com esses dados.',
-          );
+          throw new ConflictException('Já existe um registro com esses dados.');
         }
         if (error.code === 'P2003') {
           throw action === 'delete'
             ? new ConflictException(
                 'O conteúdo não pode ser removido devido a registros relacionados.',
               )
-            : new BadRequestException('O registro relacionado não foi encontrado.');
+            : new BadRequestException(
+                'O registro relacionado não foi encontrado.',
+              );
         }
         if (error.code === 'P2025' && action !== 'create') {
           throw new NotFoundException(`${entidade} não encontrado(a).`);

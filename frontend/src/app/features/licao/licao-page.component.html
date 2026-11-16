@@ -25,7 +25,10 @@
     <div *ngIf="resultadoFinal(); else desafioTemplate" class="result-card">
       <div class="result-badge">Resultado</div>
       <h1>Lição concluída</h1>
-      <p class="summary-text">Você acertou {{ resultadoFinal()?.acertos ?? 0 }} de {{ resultadoFinal()?.total ?? 0 }} desafios.</p>
+      <p class="summary-text">
+        Você acertou {{ resultadoFinal()?.acertos ?? 0 }} de
+        {{ resultadoFinal()?.total ?? 0 }} desafios.
+      </p>
       <div class="result-metrics">
         <div class="metric-card">
           <span class="metric-label">XP ganho</span>
@@ -54,7 +57,9 @@
 
     <ng-template #desafioTemplate>
       <div class="lesson-card">
-        <div class="lesson-progress-header d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+        <div
+          class="lesson-progress-header d-flex flex-column flex-md-row justify-content-between gap-3 mb-3"
+        >
           <div>
             <p class="eyebrow">{{ currentLicao.moduloTitulo }}</p>
             <h1>{{ currentLicao.titulo }}</h1>
@@ -65,77 +70,146 @@
               <span>{{ indiceAtual() + 1 }}/{{ currentLicao.desafios.length }}</span>
             </div>
             <div class="progress" aria-label="Progresso da lição">
-              <div class="progress-bar" [style.width.%]="((indiceAtual() + 1) / currentLicao.desafios.length) * 100"></div>
+              <div
+                class="progress-bar"
+                [style.width.%]="((indiceAtual() + 1) / currentLicao.desafios.length) * 100"
+              ></div>
             </div>
           </div>
         </div>
 
-        <section class="challenge-card" *ngIf="desafioAtual() as desafio">
-          <p class="challenge-type">{{ desafio.tipo }}</p>
-          <h2><code>{{ desafio.enunciado }}</code></h2>
+        <ng-container *ngIf="desafioAtual() as desafio">
+          <section class="challenge-card">
+            <p class="challenge-type">
+              {{
+                desafio.tipo === 'ESCRITA_CODIGO'
+                  ? 'Escrita de código'
+                  : desafio.tipo === 'ORDENACAO'
+                    ? 'Ordenação'
+                    : 'Escolha única'
+              }}
+            </p>
+            <h2>
+              <code>{{ desafio.enunciado }}</code>
+            </h2>
 
-          <div *ngIf="desafio.tipo === 'ESCOLHA_UNICA'" class="option-list">
-            <button
-              *ngFor="let opcao of desafio.opcoes; let idx = index"
-              type="button"
-              class="option-card"
-              [class.selected]="respostaAtual() === opcao.id"
-              (click)="selecionarOpcao(opcao.id)"
-              [attr.aria-pressed]="respostaAtual() === opcao.id"
-            >
-              <span class="option-index">{{ idx + 1 }}</span>
-              <code>{{ opcao.texto }}</code>
-            </button>
-          </div>
-
-          <div *ngIf="desafio.tipo === 'ORDENACAO'" class="ordering-panel">
-            <div
-              cdkDropList
-              class="order-list"
-              (cdkDropListDropped)="drop($event)"
-              aria-label="Lista de blocos para ordenar"
-            >
-              <div
-                *ngFor="let opcaoId of ordemAtual(); let index = index"
-                class="order-item"
-                cdkDrag
-                [attr.aria-label]="'Bloco ' + (index + 1)"
+            <div *ngIf="desafio.tipo === 'ESCOLHA_UNICA'" class="option-list">
+              <button
+                *ngFor="let opcao of desafio.opcoes; let idx = index"
+                type="button"
+                class="option-card"
+                [class.selected]="respostaAtual() === opcao.id"
+                (click)="selecionarOpcao(opcao.id)"
+                [attr.aria-pressed]="respostaAtual() === opcao.id"
               >
-                <span class="drag-handle" cdkDragHandle aria-label="Mover bloco">⋮⋮</span>
-                <code>{{ getOpcaoTextoPorId(opcaoId) }}</code>
-                <div class="move-controls">
-                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="moverItem(index, -1)" aria-label="Subir bloco">
-                    ↑
-                  </button>
-                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="moverItem(index, 1)" aria-label="Descer bloco">
-                    ↓
-                  </button>
+                <span class="option-index">{{ idx + 1 }}</span>
+                <code>{{ opcao.texto }}</code>
+              </button>
+            </div>
+
+            <div *ngIf="desafio.tipo === 'ORDENACAO'" class="ordering-panel">
+              <div
+                cdkDropList
+                class="order-list"
+                (cdkDropListDropped)="drop($event)"
+                aria-label="Lista de blocos para ordenar"
+              >
+                <div
+                  *ngFor="let opcaoId of ordemAtual(); let index = index"
+                  class="order-item"
+                  cdkDrag
+                  [attr.aria-label]="'Bloco ' + (index + 1)"
+                >
+                  <span class="drag-handle" cdkDragHandle aria-label="Mover bloco">⋮⋮</span>
+                  <code>{{ getOpcaoTextoPorId(opcaoId) }}</code>
+                  <div class="move-controls">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      (click)="moverItem(index, -1)"
+                      aria-label="Subir bloco"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      (click)="moverItem(index, 1)"
+                      aria-label="Descer bloco"
+                    >
+                      ↓
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
+          </section>
+
+          <div
+            *ngIf="feedback() as feedbackAtual"
+            class="feedback-banner"
+            [ngClass]="{ 'is-success': feedbackAtual.acertou, 'is-error': !feedbackAtual.acertou }"
+            aria-live="polite"
+          >
+            <strong>{{
+              feedbackAtual.acertou ? 'Resposta correta!' : 'Resposta incorreta.'
+            }}</strong>
+            <p *ngIf="feedbackAtual.acertou">+{{ feedbackAtual.xpGanho }} XP</p>
+            <p *ngIf="!feedbackAtual.acertou && desafio.tipo !== 'ESCRITA_CODIGO'">
+              Resposta correta: <code>{{ getRespostaCorretaTexto() }}</code>
+            </p>
+            <p *ngIf="!feedbackAtual.acertou && desafio.tipo === 'ESCRITA_CODIGO'">
+              Seu código ainda não atende a todos os critérios. Ajuste-o e tente novamente.
+            </p>
+            <p>{{ feedbackAtual.explicacao }}</p>
           </div>
-        </section>
 
-        <div *ngIf="feedback() as feedbackAtual" class="feedback-banner" [ngClass]="{ 'is-success': feedbackAtual.acertou, 'is-error': !feedbackAtual.acertou }" aria-live="polite">
-          <strong>{{ feedbackAtual.acertou ? 'Resposta correta!' : 'Resposta incorreta.' }}</strong>
-          <p *ngIf="feedbackAtual.acertou">
-            +{{ feedbackAtual.xpGanho }} XP
-          </p>
-          <p *ngIf="!feedbackAtual.acertou">
-            Resposta correta: <code>{{ getRespostaCorretaTexto() }}</code>
-          </p>
-          <p>{{ feedbackAtual.explicacao }}</p>
-        </div>
+          <section
+            *ngIf="
+              desafio.tipo === 'ESCRITA_CODIGO' && getCodeEditorContent(desafio.conteudo) as editor
+            "
+            class="code-exercise"
+          >
+            <div class="code-editor-heading">
+              <label for="code-answer">Seu código {{ editor.linguagem.toUpperCase() }}</label>
+            </div>
+            <p>{{ editor.orientacao }}</p>
+            <textarea
+              id="code-answer"
+              class="code-editor"
+              [value]="getCodigoAtual()"
+              (input)="atualizarCodigo($event)"
+              [attr.aria-label]="'Código de resposta em ' + editor.linguagem"
+              [disabled]="submitting()"
+              autocapitalize="off"
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
+              maxlength="12000"
+              rows="12"
+            ></textarea>
+          </section>
 
-        <div class="action-row d-flex justify-content-between align-items-center mt-4 gap-3">
-          <button type="button" class="btn btn-primary btn-lg" [disabled]="!podeVerificar() || submitting()" (click)="verificarResposta()">
-            {{ submitting() ? 'Verificando...' : 'Verificar Resposta' }}
-          </button>
+          <div class="action-row d-flex justify-content-between align-items-center mt-4 gap-3">
+            <button
+              type="button"
+              class="btn btn-primary btn-lg"
+              [disabled]="!podeVerificar() || submitting()"
+              (click)="verificarResposta()"
+            >
+              {{ submitting() ? 'Verificando...' : 'Verificar Resposta' }}
+            </button>
 
-          <button *ngIf="feedback()" type="button" class="btn btn-success btn-lg" (click)="continuar()">
-            Continuar
-          </button>
-        </div>
+            <button
+              *ngIf="feedback() && (desafio.tipo !== 'ESCRITA_CODIGO' || feedback()?.acertou)"
+              type="button"
+              class="btn btn-success btn-lg"
+              (click)="continuar()"
+            >
+              Continuar
+            </button>
+          </div>
+        </ng-container>
       </div>
     </ng-template>
   </ng-container>

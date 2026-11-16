@@ -13,6 +13,7 @@ import {
   IsString,
   Matches,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -136,11 +137,14 @@ export class CreateDesafioDto {
   @Min(1, { message: 'A ordem deve ser positiva.' })
   ordem!: number;
 
+  @ValidateIf(
+    (dto: CreateDesafioDto) => dto.tipo !== TipoDesafio.ESCRITA_CODIGO,
+  )
   @IsArray({ message: 'As opções devem ser enviadas em uma lista.' })
   @ArrayMinSize(2, { message: 'Informe pelo menos duas opções.' })
   @ValidateNested({ each: true })
   @Type(() => CreateOpcaoDto)
-  opcoes!: CreateOpcaoDto[];
+  opcoes?: CreateOpcaoDto[];
 }
 
 export class UpdateDesafioDto extends PartialType(CreateDesafioDto) {}

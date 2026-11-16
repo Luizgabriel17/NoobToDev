@@ -69,13 +69,40 @@ export class LicoesService {
         tipo: desafio.tipo,
         enunciado: desafio.enunciado,
         pontos: desafio.pontos,
-        conteudo: desafio.conteudo,
+        conteudo: this.conteudoPublico(desafio.tipo, desafio.conteudo),
         respondido: desafio.tentativas.length > 0,
         opcoes:
           desafio.tipo === TipoDesafio.ORDENACAO
             ? this.progress.embaralhar(desafio.opcoes)
             : desafio.opcoes,
       })),
+    };
+  }
+
+  private conteudoPublico(tipo: TipoDesafio, conteudo: unknown): unknown {
+    if (tipo !== TipoDesafio.ESCRITA_CODIGO) {
+      return conteudo;
+    }
+
+    if (typeof conteudo !== 'object' || conteudo === null) {
+      return null;
+    }
+
+    if (
+      !('linguagem' in conteudo) ||
+      (conteudo['linguagem'] !== 'html' && conteudo['linguagem'] !== 'css') ||
+      !('orientacao' in conteudo) ||
+      typeof conteudo['orientacao'] !== 'string' ||
+      !('codigoInicial' in conteudo) ||
+      typeof conteudo['codigoInicial'] !== 'string'
+    ) {
+      return null;
+    }
+
+    return {
+      linguagem: conteudo['linguagem'],
+      orientacao: conteudo['orientacao'],
+      codigoInicial: conteudo['codigoInicial'],
     };
   }
 }

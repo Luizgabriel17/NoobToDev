@@ -7,6 +7,27 @@ import { AuthService } from '../../services/auth.service';
 import { LicoesService } from '../../services/licoes.service';
 import { RespostaResultado } from '../../models/licao';
 
+interface CodeEditorContent {
+  linguagem: 'html' | 'css';
+  orientacao: string;
+  codigoInicial: string;
+}
+
+function isCodeEditorContent(value: unknown): value is CodeEditorContent {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return (
+    'linguagem' in value &&
+    (value['linguagem'] === 'html' || value['linguagem'] === 'css') &&
+    'orientacao' in value &&
+    typeof value['orientacao'] === 'string' &&
+    'codigoInicial' in value &&
+    typeof value['codigoInicial'] === 'string'
+  );
+}
+
 @Component({
   selector: 'app-licao-page',
   standalone: true,
@@ -26,9 +47,16 @@ export class LicaoPageComponent implements OnInit {
   readonly error = this.licoesService.error;
   readonly usuario = this.authService.user;
   readonly indiceAtual = signal(0);
-  readonly respostaAtual = signal<number | number[] | null>(null);
+  readonly respostaAtual = signal<number | number[] | string | null>(null);
   readonly feedback = signal<RespostaResultado | null>(null);
-  readonly resultadoFinal = signal<{ concluidas?: number; concluida: boolean; acertos: number; total: number; xpGanho: number; proximaLicaoId: number | null } | null>(null);
+  readonly resultadoFinal = signal<{
+    concluidas?: number;
+    concluida: boolean;
+    acertos: number;
+    total: number;
+    xpGanho: number;
+    proximaLicaoId: number | null;
+  } | null>(null);
 
   readonly desafioAtual = computed(() => {
     const licaoAtual = this.licao();
@@ -49,6 +77,11 @@ export class LicaoPageComponent implements OnInit {
     if (desafio.tipo === 'ORDENACAO') {
       const ordem = this.respostaAtual();
       return Array.isArray(ordem) && ordem.length === desafio.opcoes.length;
+    }
+
+    if (desafio.tipo === 'ESCRITA_CODIGO') {
+      const codigo = this.respostaAtual();
+      return typeof codigo === 'string' && codigo.trim().length > 0;
     }
 
     return false;
@@ -76,6 +109,19 @@ export class LicaoPageComponent implements OnInit {
     this.respostaAtual.set(opcaoId);
   }
 
+  atualizarCodigo(event: Event): void {
+    const target = event.target;
+    if (target instanceof HTMLTextAreaElement) {
+      this.feedback.set(null);
+      this.respostaAtual.set(target.value);
+    }
+  }
+
+  getCodigoAtual(): string {
+    const resposta = this.respostaAtual();
+    return typeof resposta === 'string' ? resposta : '';
+  }
+
   drop(event: CdkDragDrop<number[]>): void {
     const ordem = [...(this.ordemAtual() ?? [])];
     moveItemInArray(ordem, event.previousIndex, event.currentIndex);
@@ -96,14 +142,22 @@ export class LicaoPageComponent implements OnInit {
 
   verificarResposta(): void {
     const desafio = this.desafioAtual();
+    const resposta = this.respostaAtual();
     if (!desafio || !this.podeVerificar()) {
       return;
     }
 
     const payload =
-      desafio.tipo === 'ESCOLHA_UNICA'
-        ? { opcaoId: Number(this.respostaAtual()) }
-        : { ordem: this.respostaAtual() as number[] };
+      desafio.tipo === 'ESCOLHA_UNICA' && typeof resposta === 'number'
+        ? { opcaoId: resposta }
+        : desafio.tipo === 'ORDENACAO' && Array.isArray(resposta)
+          ? { ordem: resposta }
+          : desafio.tipo === 'ESCRITA_CODIGO' && typeof resposta === 'string'
+            ? { codigo: resposta }
+            : null;
+    if (!payload) {
+      return;
+    }
 
     this.licoesService.verificarResposta(desafio.id, payload).subscribe((resultado) => {
       this.feedback.set(resultado);
@@ -179,10 +233,14 @@ export class LicaoPageComponent implements OnInit {
     return Array.isArray(ordem) ? ordem : [];
   }
 
-  private respostaInicial(): number[] | null {
+  private respostaInicial(): number[] | string | null {
     const desafio = this.desafioAtual();
     if (!desafio) {
       return null;
+    }
+
+    if (desafio.tipo === 'ESCRITA_CODIGO' && isCodeEditorContent(desafio.conteudo)) {
+      return desafio.conteudo.codigoInicial;
     }
 
     if (desafio.tipo === 'ORDENACAO') {
@@ -190,5 +248,9 @@ export class LicaoPageComponent implements OnInit {
     }
 
     return null;
+  }
+
+  getCodeEditorContent(value: unknown): CodeEditorContent | null {
+    return isCodeEditorContent(value) ? value : null;
   }
 }

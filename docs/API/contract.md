@@ -19,17 +19,20 @@ Erros seguem o padrão do NestJS: `{ "statusCode": 400, "message": "texto" | ["t
 5. **Tipos de desafio:**
    - `ESCOLHA_UNICA`: a resposta é `{ "opcaoId": number }`. Está correta se a opção tiver `correta = true`.
    - `ORDENACAO`: a resposta é `{ "ordem": number[] }`, com os ids de todas as opções do desafio, uma vez cada, na ordem escolhida. Está correta se a ordem for igual à ordenação por `posicaoCorreta` crescente. As opções chegam embaralhadas ao cliente.
+   - `ESCRITA_CODIGO`: a resposta é `{ "codigo": string }`, limitada a 12.000 caracteres. O servidor verifica os critérios configurados para o exercício (elementos/atributos HTML ou declarações CSS) sem executar o código. As verificações não são enviadas ao aluno; respostas incorretas podem ser reenviadas e não concluem a lição.
+
+   Para exercícios de código, `Desafio.conteudo` armazena `linguagem`, `orientacao`, `codigoInicial` e `verificacoes`. O endpoint de lições envia ao estudante somente os três primeiros campos; as verificações ficam privadas no servidor. Critérios HTML aceitos: `HTML_ELEMENT` (`tag`, `texto`), `HTML_ATTRIBUTE` (`tag`, `atributo`, `valor`), `CSS_DECLARATION` (`seletor`, `propriedade`, `valor`) e `CSS_MEDIA_QUERY` (`condicao`).
 6. **Lição reaberta:** uma lição `CONCLUIDA` pode ser refeita para revisão, mas continua `CONCLUIDA` e não gera XP novamente.
 
 ## Rotas
 
 ### Autenticação (já implementadas na fase 2)
 
-| Método e rota | Corpo | Sucesso | Erros |
-| --- | --- | --- | --- |
-| `POST /auth/register` | `{ nome, email, senha }` | 201 `Usuario` | 400, 409 |
-| `POST /auth/login` | `{ email, senha }` | 200 `{ accessToken, usuario }` | 400, 401 |
-| `GET /auth/me` | | 200 `Usuario` | 401 |
+| Método e rota         | Corpo                    | Sucesso                        | Erros    |
+| --------------------- | ------------------------ | ------------------------------ | -------- |
+| `POST /auth/register` | `{ nome, email, senha }` | 201 `Usuario`                  | 400, 409 |
+| `POST /auth/login`    | `{ email, senha }`       | 200 `{ accessToken, usuario }` | 400, 401 |
+| `GET /auth/me`        |                          | 200 `Usuario`                  | 401      |
 
 `Usuario` = `{ id, nome, email, xpTotal, papel }`.
 
@@ -50,8 +53,20 @@ Lista as trilhas das linguagens ativas, com módulos, lições publicadas e o es
         "titulo": "Introdução ao HTML",
         "ordem": 1,
         "licoes": [
-          { "id": 1, "titulo": "Estrutura básica", "ordem": 1, "status": "CONCLUIDA", "xpGanho": 30 },
-          { "id": 2, "titulo": "Textos: h1 e p", "ordem": 2, "status": "DISPONIVEL", "xpGanho": 0 }
+          {
+            "id": 1,
+            "titulo": "Estrutura básica",
+            "ordem": 1,
+            "status": "CONCLUIDA",
+            "xpGanho": 30
+          },
+          {
+            "id": 2,
+            "titulo": "Textos: h1 e p",
+            "ordem": 2,
+            "status": "DISPONIVEL",
+            "xpGanho": 0
+          }
         ]
       }
     ]
@@ -78,7 +93,10 @@ Devolve a lição com os desafios, sem gabarito.
       "pontos": 10,
       "conteudo": null,
       "respondido": false,
-      "opcoes": [ { "id": 100, "texto": "<h1>" }, { "id": 101, "texto": "<p>" } ]
+      "opcoes": [
+        { "id": 100, "texto": "<h1>" },
+        { "id": 101, "texto": "<p>" }
+      ]
     }
   ]
 }
@@ -88,7 +106,7 @@ Erros: 404 (não existe ou não publicada), 403 (lição `BLOQUEADA`).
 
 ### `POST /desafios/:id/respostas`
 
-Corpo: `{ "opcaoId": 100 }` (escolha única) ou `{ "ordem": [5, 3, 4] }` (ordenação).
+Corpo: `{ "opcaoId": 100 }` (escolha única), `{ "ordem": [5, 3, 4] }` (ordenação) ou `{ "codigo": "<h1>Olá</h1>" }` (escrita de código).
 
 ```json
 {
@@ -101,8 +119,9 @@ Corpo: `{ "opcaoId": 100 }` (escolha única) ou `{ "ordem": [5, 3, 4] }` (ordena
 }
 ```
 
-- `respostaCorreta` tem o mesmo formato da resposta do tipo (`{ opcaoId }` ou `{ ordem }`).
+- `respostaCorreta` tem o mesmo formato da resposta do tipo (`{ opcaoId }` ou `{ ordem }`); em escrita de código é `null` para não revelar a solução.
 - `xpGanho` é 0 quando errou ou quando o desafio já tinha sido acertado antes.
+- Exercícios de código podem ser reenviados. Uma resposta incorreta não conclui esse desafio nem a lição; o XP continua sendo concedido apenas na primeira resposta correta.
 - `licao` é `null` enquanto houver desafios sem resposta. Na resposta ao último desafio, vem `{ "concluida": true, "acertos": 3, "total": 4, "xpGanho": 30, "proximaLicaoId": 3 }`, com `proximaLicaoId` igual a `null` se for a última da trilha.
 
 Erros: 400 (formato inválido para o tipo, opção que não pertence ao desafio, ordem incompleta), 403 (lição bloqueada), 404.
@@ -118,7 +137,15 @@ Erros: 400 (formato inválido para o tipo, opção que não pertence ao desafio,
   "licoesConcluidas": 1,
   "totalLicoes": 5,
   "criadoEm": "2026-11-15T12:00:00.000Z",
-  "trilhas": [ { "id": 1, "titulo": "Fundamentos de Desenvolvimento Web", "concluidas": 1, "total": 5, "percentual": 20 } ]
+  "trilhas": [
+    {
+      "id": 1,
+      "titulo": "Fundamentos de Desenvolvimento Web",
+      "concluidas": 1,
+      "total": 5,
+      "percentual": 20
+    }
+  ]
 }
 ```
 

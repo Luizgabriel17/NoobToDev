@@ -73,6 +73,53 @@ h2 {
   font-weight: 700;
 }
 
+.code-exercise {
+  margin-top: 1.5rem;
+  border: 1px solid #293548;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #111827;
+}
+
+.code-editor-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  color: #e5e7eb;
+  background: #1f2937;
+  font-size: 0.85rem;
+}
+
+.code-editor-heading label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.code-exercise > p {
+  color: #cbd5e1;
+}
+
+.code-exercise > p {
+  margin: 0;
+  padding: 0.75rem 1rem 0;
+  font-size: 0.9rem;
+}
+
+.code-editor {
+  display: block;
+  width: 100%;
+  min-height: 18rem;
+  padding: 1rem;
+  resize: vertical;
+  border: 0;
+  color: #e5e7eb;
+  background: #111827;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
 h2 {
   margin-top: 0.5rem;
   margin-bottom: 1.5rem;
@@ -100,7 +147,10 @@ h2 code {
   border-radius: 1.1rem;
   padding: 1rem 1.1rem;
   text-align: left;
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .option-card.selected {

@@ -1,4 +1,4 @@
-export type TipoDesafio = 'ESCOLHA_UNICA' | 'ORDENACAO';
+export type TipoDesafio = 'ESCOLHA_UNICA' | 'ORDENACAO' | 'ESCRITA_CODIGO';
 
 export interface OpcaoDesafio {
   id: number;
@@ -34,8 +34,8 @@ export interface RespostaCorreta {
 export interface RespostaResultado {
   acertou: boolean;
   xpGanho: number;
-  explicacao: string;
-  respostaCorreta: RespostaCorreta;
+  explicacao: string | null;
+  respostaCorreta: RespostaCorreta | null;
   xpTotal: number;
   licao: null | {
     concluida: boolean;

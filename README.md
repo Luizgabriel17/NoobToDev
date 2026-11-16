@@ -22,4 +22,4 @@
 
 4. Abra `http://localhost:4200`. O proxy do Angular encaminha chamadas `/api/*` para `http://localhost:3000`; autenticação, trilhas, lições, respostas e perfil usam dados do backend/PostgreSQL, sem contas ou respostas simuladas.
 
-Para popular uma base de desenvolvimento vazia, execute `npm run db:seed` em `backend` uma vez após as migrações. O seed cria conteúdo de exemplo; não o execute em uma base com progresso que precise preservar.
+Para popular uma base de desenvolvimento vazia, execute `npm run db:seed` em `backend` uma vez após as migrações. O seed inclui exercícios de HTML e CSS, inclusive desafios em que o aluno escreve código corrigido pela API sem executar o conteúdo enviado. Não o execute em uma base com progresso que precise preservar.

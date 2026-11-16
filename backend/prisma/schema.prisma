@@ -22,6 +22,7 @@
   enum TipoDesafio {
     ESCOLHA_UNICA
     ORDENACAO
+    ESCRITA_CODIGO
   }
 
   enum StatusLicao {

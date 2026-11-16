@@ -4,9 +4,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProgressService } from './progress.service';
 
 describe('ProgressService', () => {
-  const service = new ProgressService(
-    { licao: { findMany: jest.fn() } } as unknown as PrismaService,
-  );
+  const service = new ProgressService({
+    licao: { findMany: jest.fn() },
+  } as unknown as PrismaService);
 
   it('calcula o desbloqueio sequencial das lições', () => {
     const states = service.calculateLessonStates([
@@ -83,6 +83,73 @@ describe('ProgressService', () => {
         opcoes,
       ),
     ).toThrow(BadRequestException);
+  });
+
+  it('corrige exercícios de HTML sem considerar instruções em comentários', () => {
+    const config = {
+      linguagem: 'html',
+      verificacoes: [
+        {
+          tipo: 'HTML_ELEMENT',
+          tag: 'h1',
+          texto: 'Minha página',
+        },
+        {
+          tipo: 'HTML_ATTRIBUTE',
+          tag: 'img',
+          atributo: 'alt',
+          valor: 'Paisagem',
+        },
+      ],
+    };
+
+    expect(
+      service.evaluateCodeAnswer(
+        '<!-- <h1>Minha página</h1> -->\n<h1>Minha página</h1><img alt="Paisagem">',
+        config,
+      ),
+    ).toEqual({ acertou: true, respostaCorreta: null });
+    expect(
+      service.evaluateCodeAnswer(
+        '<h1>Outra página</h1><img alt="Paisagem">',
+        config,
+      ).acertou,
+    ).toBe(false);
+  });
+
+  it('corrige declarações CSS mesmo com espaços e regras em media query', () => {
+    const config = {
+      linguagem: 'css',
+      verificacoes: [
+        {
+          tipo: 'CSS_MEDIA_QUERY',
+          condicao: '(max-width: 600px)',
+        },
+        {
+          tipo: 'CSS_DECLARATION',
+          seletor: '.container',
+          propriedade: 'flex-direction',
+          valor: 'column',
+        },
+      ],
+    };
+
+    expect(
+      service.evaluateCodeAnswer(
+        '@media ( max-width: 600px ) { .container { flex-direction : column; } }',
+        config,
+      ).acertou,
+    ).toBe(true);
+    expect(
+      service.evaluateCodeAnswer('.container { flex-direction: row; }', config)
+        .acertou,
+    ).toBe(false);
+  });
+
+  it('rejeita configuração inválida de exercício de código', () => {
+    expect(() => service.evaluateCodeAnswer('<h1>Olá</h1>', {})).toThrow(
+      BadRequestException,
+    );
   });
 
   it('concede XP somente na primeira resposta correta', () => {

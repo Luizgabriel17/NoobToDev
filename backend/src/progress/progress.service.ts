@@ -19,8 +19,30 @@ export interface LessonWithState<T extends LessonProgressState> {
 }
 
 export type ChallengeAnswer =
-  | { opcaoId: number }
-  | { ordem: number[] };
+  { opcaoId: number } | { ordem: number[] } | { codigo: string };
+
+export type StandardChallengeAnswer = { opcaoId: number } | { ordem: number[] };
+
+type CodeCheck =
+  | { tipo: 'HTML_ELEMENT'; tag: string; texto: string }
+  | {
+      tipo: 'HTML_ATTRIBUTE';
+      tag: string;
+      atributo: string;
+      valor: string;
+    }
+  | {
+      tipo: 'CSS_DECLARATION';
+      seletor: string;
+      propriedade: string;
+      valor: string;
+    }
+  | { tipo: 'CSS_MEDIA_QUERY'; condicao: string };
+
+interface CodeChallengeContent {
+  linguagem: 'html' | 'css';
+  verificacoes: CodeCheck[];
+}
 
 export interface ChallengeOption {
   id: number;
@@ -38,8 +60,7 @@ export class ProgressService {
     let previousCompleted = true;
 
     return lessons.map((lesson) => {
-      const completed =
-        lesson.progressos[0]?.status === StatusLicao.CONCLUIDA;
+      const completed = lesson.progressos[0]?.status === StatusLicao.CONCLUIDA;
       const status = completed
         ? StatusLicao.CONCLUIDA
         : previousCompleted
@@ -101,9 +122,9 @@ export class ProgressService {
 
   evaluateAnswer(
     tipo: TipoDesafio,
-    resposta: ChallengeAnswer,
+    resposta: StandardChallengeAnswer,
     opcoes: readonly ChallengeOption[],
-  ): { acertou: boolean; respostaCorreta: ChallengeAnswer } {
+  ): { acertou: boolean; respostaCorreta: StandardChallengeAnswer } {
     if (tipo === TipoDesafio.ESCOLHA_UNICA) {
       if (!('opcaoId' in resposta)) {
         throw new BadRequestException(
@@ -149,7 +170,8 @@ export class ProgressService {
     }
 
     const ordenadas = [...opcoes].sort(
-      (a, b) => (a.posicaoCorreta ?? Number.MAX_SAFE_INTEGER) -
+      (a, b) =>
+        (a.posicaoCorreta ?? Number.MAX_SAFE_INTEGER) -
         (b.posicaoCorreta ?? Number.MAX_SAFE_INTEGER),
     );
     if (
@@ -167,6 +189,185 @@ export class ProgressService {
       acertou: resposta.ordem.every((id, index) => id === ordemCorreta[index]),
       respostaCorreta: { ordem: ordemCorreta },
     };
+  }
+
+  evaluateCodeAnswer(
+    codigo: string,
+    conteudo: unknown,
+  ): { acertou: boolean; respostaCorreta: null } {
+    const config = this.parseCodeChallengeContent(conteudo);
+    const codigoSemComentarios =
+      config.linguagem === 'html'
+        ? codigo.replace(/<!--[\s\S]*?-->/g, '')
+        : codigo.replace(/\/\*[\s\S]*?\*\//g, '');
+    const acertou = config.verificacoes.every((verificacao) =>
+      this.checkCodeRequirement(codigoSemComentarios, verificacao),
+    );
+
+    return { acertou, respostaCorreta: null };
+  }
+
+  private parseCodeChallengeContent(conteudo: unknown): CodeChallengeContent {
+    const isRecord = (value: unknown): value is Record<string, unknown> =>
+      typeof value === 'object' && value !== null;
+    const isString = (value: unknown): value is string =>
+      typeof value === 'string';
+    const isValidCheck = (value: unknown): value is CodeCheck => {
+      if (!isRecord(value) || !isString(value['tipo'])) {
+        return false;
+      }
+
+      if (value['tipo'] === 'HTML_ELEMENT') {
+        return isString(value['tag']) && isString(value['texto']);
+      }
+      if (value['tipo'] === 'HTML_ATTRIBUTE') {
+        return (
+          isString(value['tag']) &&
+          isString(value['atributo']) &&
+          isString(value['valor'])
+        );
+      }
+      if (value['tipo'] === 'CSS_DECLARATION') {
+        return (
+          isString(value['seletor']) &&
+          isString(value['propriedade']) &&
+          isString(value['valor'])
+        );
+      }
+      if (value['tipo'] === 'CSS_MEDIA_QUERY') {
+        return isString(value['condicao']);
+      }
+      return false;
+    };
+
+    if (
+      !isRecord(conteudo) ||
+      (conteudo['linguagem'] !== 'html' && conteudo['linguagem'] !== 'css') ||
+      !Array.isArray(conteudo['verificacoes']) ||
+      conteudo['verificacoes'].length === 0 ||
+      !conteudo['verificacoes'].every(isValidCheck) ||
+      (conteudo['linguagem'] === 'html' &&
+        conteudo['verificacoes'].some(
+          (check) =>
+            check['tipo'] === 'CSS_DECLARATION' ||
+            check['tipo'] === 'CSS_MEDIA_QUERY',
+        )) ||
+      (conteudo['linguagem'] === 'css' &&
+        conteudo['verificacoes'].some(
+          (check) =>
+            check['tipo'] !== 'CSS_DECLARATION' &&
+            check['tipo'] !== 'CSS_MEDIA_QUERY',
+        ))
+    ) {
+      throw new BadRequestException(
+        'O desafio de código não possui verificações válidas.',
+      );
+    }
+
+    return {
+      linguagem: conteudo['linguagem'],
+      verificacoes: conteudo['verificacoes'],
+    };
+  }
+
+  private checkCodeRequirement(
+    codigo: string,
+    verificacao: CodeCheck,
+  ): boolean {
+    if (verificacao.tipo === 'CSS_MEDIA_QUERY') {
+      return this.normalizarCss(codigo).includes(
+        this.normalizarCss(`@media ${verificacao.condicao}`),
+      );
+    }
+
+    if (verificacao.tipo === 'HTML_ELEMENT') {
+      if (!/^[a-z][a-z0-9-]*$/i.test(verificacao.tag)) {
+        return false;
+      }
+      const openingTag = new RegExp(`<${verificacao.tag}\\b[^>]*>`, 'i').exec(
+        codigo,
+      );
+      if (!openingTag) {
+        return false;
+      }
+
+      const closingTag = new RegExp(`</${verificacao.tag}\\s*>`, 'i').exec(
+        codigo.slice(openingTag.index + openingTag[0].length),
+      );
+      if (!closingTag) {
+        return false;
+      }
+
+      const textStart = openingTag.index + openingTag[0].length;
+      const innerText = codigo.slice(textStart, textStart + closingTag.index);
+      return innerText.includes(verificacao.texto);
+    }
+
+    if (verificacao.tipo === 'HTML_ATTRIBUTE') {
+      if (
+        !/^[a-z][a-z0-9-]*$/i.test(verificacao.tag) ||
+        !/^[a-z_:][a-z0-9:_.-]*$/i.test(verificacao.atributo)
+      ) {
+        return false;
+      }
+
+      const tags = codigo.match(
+        new RegExp(`<${verificacao.tag}\\b[^>]*>`, 'gi'),
+      );
+      return Boolean(
+        tags?.some((tag) => {
+          const attributes = tag.matchAll(
+            /([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g,
+          );
+          return [...attributes].some((attribute) => {
+            const name = attribute[1].toLowerCase();
+            const value = attribute[2] ?? attribute[3] ?? attribute[4];
+            return (
+              name === verificacao.atributo.toLowerCase() &&
+              value === verificacao.valor
+            );
+          });
+        }),
+      );
+    }
+
+    const selectorEsperado = this.normalizarCss(verificacao.seletor);
+    const propriedadeEsperada = verificacao.propriedade.toLowerCase();
+    const valorEsperado = this.normalizarCss(verificacao.valor);
+    const regras = codigo.matchAll(/([^{}]+)\{([^{}]*)\}/g);
+
+    for (const regra of regras) {
+      const seletores = regra[1]
+        .split(',')
+        .map((seletor) => this.normalizarCss(seletor));
+      if (!seletores.includes(selectorEsperado)) {
+        continue;
+      }
+
+      const declaracoes = regra[2].split(';');
+      for (const declaracao of declaracoes) {
+        const separador = declaracao.indexOf(':');
+        if (separador < 0) {
+          continue;
+        }
+
+        const propriedade = declaracao.slice(0, separador).trim().toLowerCase();
+        const valor = this.normalizarCss(declaracao.slice(separador + 1));
+        if (propriedade === propriedadeEsperada && valor === valorEsperado) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private normalizarCss(valor: string): string {
+    return valor
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/\s*([():,])\s*/g, '$1')
+      .toLowerCase();
   }
 
   shouldGrantXp(acertou: boolean, acertouAntes: boolean): boolean {
