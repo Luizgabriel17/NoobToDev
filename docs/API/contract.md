@@ -4,6 +4,12 @@ Base URL em desenvolvimento: `http://localhost:3000`
 Formato: JSON. Todas as rotas, exceto `POST /auth/register` e `POST /auth/login`, exigem o cabeçalho `Authorization: Bearer <accessToken>`.
 Erros seguem o padrão do NestJS: `{ "statusCode": 400, "message": "texto" | ["texto", ...], "error": "Bad Request" }`. As mensagens são em português.
 
+## Fluxo de trabalho Git para agentes
+
+- Trabalhe diretamente na branch `main` do repositório principal; não crie nem use branches de funcionalidade.
+- Inclua todas as alterações solicitadas em commits feitos na `main`, inclusive mudanças na API, no front-end e na documentação.
+- Antes de encerrar a tarefa, confirme que as alterações estão commitadas na `main` e que não há branches de funcionalidade sobrando. Preserve sempre a branch `main`.
+
 ## Regras de negócio (valem para back-end e front-end)
 
 1. **Estado das lições** (calculado no servidor): dentro de cada trilha, as lições seguem a ordem (`ordem` do módulo, depois `ordem` da lição). A primeira lição é `DISPONIVEL`. Cada lição seguinte só fica `DISPONIVEL` quando a anterior estiver `CONCLUIDA`. Antes disso é `BLOQUEADA`. Lições com `publicada = false` não aparecem para estudantes.

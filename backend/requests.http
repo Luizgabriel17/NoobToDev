@@ -1,0 +1,248 @@
+@baseUrl = http://localhost:3000
+@token = {{login.response.body.accessToken}}
+@adminToken = {{adminLogin.response.body.accessToken}}
+@adminEmail = admin@desenvolvimento.local
+@adminPassword = trocar-esta-senha
+
+### 1. Cadastro
+# @name register
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "nome": "Ana",
+  "email": "ana@teste.com",
+  "senha": "senha123"
+}
+
+### 2. Login de estudante
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "ana@teste.com",
+  "senha": "senha123"
+}
+
+### 3. Dados do usuário autenticado
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+### 4. Trilhas disponíveis
+# @name trilhas
+GET {{baseUrl}}/trilhas
+Authorization: Bearer {{token}}
+
+### 5. Detalhes da primeira lição (ajuste o id conforme /trilhas)
+GET {{baseUrl}}/licoes/1
+Authorization: Bearer {{token}}
+
+### 6. Resposta de escolha única (ajuste o id e a opção conforme a lição)
+POST {{baseUrl}}/desafios/1/respostas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "opcaoId": 1
+}
+
+### Alternativa para desafio de ordenação
+POST {{baseUrl}}/desafios/1/respostas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "ordem": [1, 2, 3]
+}
+
+### 7. Perfil e progresso
+GET {{baseUrl}}/perfil
+Authorization: Bearer {{token}}
+
+### 8. Login do administrador de desenvolvimento (configure SEED_ADMIN_EMAIL e SEED_ADMIN_SENHA)
+# @name adminLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "senha": "{{adminPassword}}"
+}
+
+### 9. Listar linguagens
+GET {{baseUrl}}/admin/linguagens
+Authorization: Bearer {{adminToken}}
+
+### 10. Criar linguagem
+# @name adminCreateLanguage
+POST {{baseUrl}}/admin/linguagens
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nome": "Exemplo REST Client",
+  "slug": "rest-client-exemplo",
+  "ativa": true
+}
+
+### 11. Buscar linguagem
+GET {{baseUrl}}/admin/linguagens/{{adminCreateLanguage.response.body.id}}
+Authorization: Bearer {{adminToken}}
+
+### 12. Atualizar linguagem
+PATCH {{baseUrl}}/admin/linguagens/{{adminCreateLanguage.response.body.id}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nome": "Exemplo REST Client atualizado"
+}
+
+### 13. Listar trilhas administrativas
+GET {{baseUrl}}/admin/trilhas
+Authorization: Bearer {{adminToken}}
+
+### 14. Criar trilha
+# @name adminCreateTrail
+POST {{baseUrl}}/admin/trilhas
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "linguagemId": {{adminCreateLanguage.response.body.id}},
+  "titulo": "Trilha REST Client",
+  "ordem": 1
+}
+
+### 15. Buscar trilha
+GET {{baseUrl}}/admin/trilhas/{{adminCreateTrail.response.body.id}}
+Authorization: Bearer {{adminToken}}
+
+### 16. Atualizar trilha
+PATCH {{baseUrl}}/admin/trilhas/{{adminCreateTrail.response.body.id}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "titulo": "Trilha REST Client atualizada"
+}
+
+### 17. Listar módulos administrativos
+GET {{baseUrl}}/admin/modulos
+Authorization: Bearer {{adminToken}}
+
+### 18. Criar módulo
+# @name adminCreateModule
+POST {{baseUrl}}/admin/modulos
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "trilhaId": {{adminCreateTrail.response.body.id}},
+  "titulo": "Módulo REST Client",
+  "ordem": 1
+}
+
+### 19. Buscar módulo
+GET {{baseUrl}}/admin/modulos/{{adminCreateModule.response.body.id}}
+Authorization: Bearer {{adminToken}}
+
+### 20. Atualizar módulo
+PATCH {{baseUrl}}/admin/modulos/{{adminCreateModule.response.body.id}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "titulo": "Módulo REST Client atualizado"
+}
+
+### 21. Listar lições administrativas
+GET {{baseUrl}}/admin/licoes
+Authorization: Bearer {{adminToken}}
+
+### 22. Criar lição
+# @name adminCreateLesson
+POST {{baseUrl}}/admin/licoes
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "moduloId": {{adminCreateModule.response.body.id}},
+  "titulo": "Lição REST Client",
+  "ordem": 1,
+  "publicada": false
+}
+
+### 23. Buscar lição administrativa
+GET {{baseUrl}}/admin/licoes/{{adminCreateLesson.response.body.id}}
+Authorization: Bearer {{adminToken}}
+
+### 24. Atualizar lição
+PATCH {{baseUrl}}/admin/licoes/{{adminCreateLesson.response.body.id}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "publicada": true
+}
+
+### 25. Listar desafios administrativos
+GET {{baseUrl}}/admin/desafios
+Authorization: Bearer {{adminToken}}
+
+### 26. Criar desafio com opções
+# @name adminCreateChallenge
+POST {{baseUrl}}/admin/desafios
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "licaoId": {{adminCreateLesson.response.body.id}},
+  "tipo": "ESCOLHA_UNICA",
+  "enunciado": "Qual tag cria um parágrafo?",
+  "explicacao": "A tag p representa um parágrafo.",
+  "pontos": 10,
+  "ordem": 1,
+  "opcoes": [
+    { "texto": "<p>", "correta": true },
+    { "texto": "<h1>", "correta": false }
+  ]
+}
+
+### 27. Buscar desafio
+GET {{baseUrl}}/admin/desafios/{{adminCreateChallenge.response.body.id}}
+Authorization: Bearer {{adminToken}}
+
+### 28. Atualizar desafio e suas opções
+PATCH {{baseUrl}}/admin/desafios/{{adminCreateChallenge.response.body.id}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "enunciado": "Qual elemento HTML representa um parágrafo?",
+  "opcoes": [
+    { "texto": "<p>", "correta": true },
+    { "texto": "<h1>", "correta": false }
+  ]
+}
+
+### 29. Excluir desafio
+DELETE {{baseUrl}}/admin/desafios/{{adminCreateChallenge.response.body.id}}
+Authorization: Bearer {{adminToken}}
+
+### 30. Excluir lição
+DELETE {{baseUrl}}/admin/licoes/{{adminCreateLesson.response.body.id}}
+Authorization: Bearer {{adminToken}}
+
+### 31. Excluir módulo
+DELETE {{baseUrl}}/admin/modulos/{{adminCreateModule.response.body.id}}
+Authorization: Bearer {{adminToken}}
+
+### 32. Excluir trilha
+DELETE {{baseUrl}}/admin/trilhas/{{adminCreateTrail.response.body.id}}
+Authorization: Bearer {{adminToken}}
+
+### 33. Excluir linguagem
+DELETE {{baseUrl}}/admin/linguagens/{{adminCreateLanguage.response.body.id}}
+Authorization: Bearer {{adminToken}}
