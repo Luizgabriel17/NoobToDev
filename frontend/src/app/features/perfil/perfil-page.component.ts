@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 
 import { AuthService } from '../../services/auth.service';
 import { PerfilService } from '../../services/perfil.service';
@@ -8,7 +8,7 @@ import { PerfilService } from '../../services/perfil.service';
 @Component({
   selector: 'app-perfil-page',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   templateUrl: './perfil-page.component.html',
   styleUrl: './perfil-page.component.css',
 })

@@ -1,7 +1,7 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { AuthService } from '../../services/auth.service';
 import { LicoesService } from '../../services/licoes.service';
@@ -10,7 +10,7 @@ import { RespostaResultado } from '../../models/licao';
 @Component({
   selector: 'app-licao-page',
   standalone: true,
-  imports: [CommonModule, DragDropModule, RouterLink],
+  imports: [CommonModule, DragDropModule],
   templateUrl: './licao-page.component.html',
   styleUrl: './licao-page.component.css',
 })

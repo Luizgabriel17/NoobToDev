@@ -96,7 +96,7 @@
               aria-label="Lista de blocos para ordenar"
             >
               <div
-                *ngFor="let opcaoId of respostaAtual() as ordemAtual; let index = index"
+                *ngFor="let opcaoId of ordemAtual(); let index = index"
                 class="order-item"
                 cdkDrag
                 [attr.aria-label]="'Bloco ' + (index + 1)"
