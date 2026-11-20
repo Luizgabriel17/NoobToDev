@@ -8,7 +8,9 @@ O Prisma não substitui as regras dos serviços: ele representa entidades, rela�
 
 ## Configuração do Prisma
 
-O cliente Prisma é fornecido por `prisma-client-js`, e a fonte de dados é PostgreSQL. A URL da conexão vem de `DATABASE_URL`. A configuração em [`backend/prisma.config.ts`](../backend/prisma.config.ts) indica o caminho do schema, a pasta de migrações e o comando de seed. [`backend/src/prisma/prisma.service.ts`](../backend/src/prisma/prisma.service.ts) cria o `PrismaClient` com o adaptador `@prisma/adapter-pg`, abre a conexão no início do módulo NestJS e a fecha ao encerrar.
+O cliente Prisma é fornecido por `prisma-client-js`, e a fonte de dados é PostgreSQL. A URL da conexão vem de `DATABASE_URL`. A configuração em [`backend/prisma.config.ts`](../backend/prisma.config.ts) indica o caminho do schema, a pasta de migrações e o comando de seed. [`backend/src/prisma/prisma.service.ts`](../backend/src/prisma/prisma.service.ts) escolhe o adaptador pelo hostname: usa `@prisma/adapter-pg` para `localhost`, `127.0.0.1` e `::1`, e `@prisma/adapter-neon` nos demais casos. Para Neon, o driver serverless usa WebSockets seguros (WSS), permitindo que as conexões da aplicação passem pela porta 443 em redes que bloqueiam a porta TCP 5432. A conexão é aberta no início do módulo NestJS e fechada ao encerrar.
+
+Os comandos do Prisma CLI, como `db:migrate` e `db push`, não usam o adaptador serverless da aplicação: conectam diretamente ao PostgreSQL por TCP e continuam sujeitos ao bloqueio da porta 5432. Execute migrações apenas em uma rede que permita essa conexão direta (por exemplo, uma rede confiável sem o bloqueio ou um ambiente de desenvolvimento com acesso ao banco). A `DATABASE_URL` permanece configurada no `.env`, que não deve ser versionado.
 
 Comandos disponíveis na pasta `backend`:
 

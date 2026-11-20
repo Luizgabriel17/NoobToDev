@@ -66,7 +66,9 @@ npm install
 npm start
 ```
 
-A aplicação ficará disponível em `http://localhost:4200`. O proxy de desenvolvimento encaminha as chamadas `/api/*` para a API local.
+A aplicação ficará disponível em `http://localhost:4200`. Para abrir em outro dispositivo conectado à mesma rede Wi-Fi, acesse `http://IP-DA-MAQUINA:4200`, substituindo pelo endereço IP local do computador que executa o projeto. O proxy de desenvolvimento encaminha as chamadas `/api/*` para a API local.
+
+O servidor de desenvolvimento escuta em todas as interfaces e aceita o hostname usado para acessar o IP local. Use essa configuração apenas em uma rede confiável: ela não é adequada para expor o servidor à internet. Se o acesso pela rede doméstica continuar falhando, verifique se o firewall permite conexões na porta `4200` e se o roteador não isola os dispositivos Wi-Fi.
 
 ### Dados de exemplo
 

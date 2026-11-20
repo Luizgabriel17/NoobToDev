@@ -46,6 +46,8 @@ npm run start:dev
 
 Na configuração padrão, o Angular em `http://localhost:4200` encaminha `/api/*` para o backend em `http://localhost:3000`; assim, as chamadas usam o mesmo domínio e não precisam de CORS durante o desenvolvimento. Em produção, configure o servidor web para encaminhar `/api/*` ao backend (removendo o prefixo `/api`) ou adapte `frontend/src/app/core/api.config.ts` e permita a origem em `FRONTEND_ORIGIN`.
 
+Para conexões da aplicação, `PrismaService` usa o adaptador Neon com WebSockets (porta 443) quando `DATABASE_URL` não aponta para `localhost`, `127.0.0.1` ou `::1`; bancos locais continuam usando o adaptador `pg`. Os comandos do Prisma CLI, incluindo `db:migrate` e `db push`, continuam usando conexão TCP direta com PostgreSQL na porta 5432 e não se beneficiam do adaptador serverless. Execute migrações somente em uma rede que permita essa conexão.
+
 O frontend e o backend usam `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `GET /trilhas`, `GET /licoes/:id`, `POST /desafios/:id/respostas` e `GET /perfil`. Requisições autenticadas enviam automaticamente `Authorization: Bearer <accessToken>`. O registro cria a conta e em seguida faz login para iniciar a sessão.
 
 ## Project setup

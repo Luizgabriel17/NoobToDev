@@ -84,4 +84,4 @@ npm run build
 npm test
 ```
 
-`npm start` executa o servidor Angular de desenvolvimento com o proxy. A compilação de produção é a configuração padrão de `npm run build`; os testes usam Vitest por meio do builder Angular. Para alterar a interface, execute ao menos a compilação e os testes relevantes existentes.
+`npm start` executa o servidor Angular de desenvolvimento com o proxy, escutando em todas as interfaces para permitir acesso por outros dispositivos na rede local. Use `http://IP-DA-MAQUINA:4200` no dispositivo cliente. A validação de hostname do servidor fica desativada para aceitar o IP/hostname local; por isso, mantenha essa configuração restrita a redes confiáveis e não exponha o servidor à internet. A compilação de produção é a configuração padrão de `npm run build`; os testes usam Vitest por meio do builder Angular. Para alterar a interface, execute ao menos a compilação e os testes relevantes existentes.
