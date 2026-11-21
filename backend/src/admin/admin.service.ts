@@ -226,6 +226,10 @@ export class AdminService {
           titulo: dto.titulo.trim(),
           ordem: dto.ordem,
           publicada: dto.publicada ?? false,
+          tipo: dto.tipo,
+          explicacao: dto.explicacao?.trim() ?? null,
+          exemploCodigo: dto.exemploCodigo ?? null,
+          exemploResultado: dto.exemploResultado ?? null,
         },
       }),
     );
@@ -242,6 +246,16 @@ export class AdminService {
             ...(dto.ordem !== undefined ? { ordem: dto.ordem } : {}),
             ...(dto.publicada !== undefined
               ? { publicada: dto.publicada }
+              : {}),
+            ...(dto.tipo !== undefined ? { tipo: dto.tipo } : {}),
+            ...(dto.explicacao !== undefined
+              ? { explicacao: dto.explicacao.trim() }
+              : {}),
+            ...(dto.exemploCodigo !== undefined
+              ? { exemploCodigo: dto.exemploCodigo }
+              : {}),
+            ...(dto.exemploResultado !== undefined
+              ? { exemploResultado: dto.exemploResultado }
               : {}),
           },
         }),
@@ -278,7 +292,7 @@ export class AdminService {
 
   async criarDesafio(dto: CreateDesafioDto) {
     this.validarOpcoes(dto.tipo, dto.opcoes ?? []);
-    this.validarConteudoCodigo(dto.tipo, dto.conteudo);
+    this.validarConteudoDesafio(dto.tipo, dto.conteudo);
     return this.run(() =>
       this.prisma.desafio.create({
         data: {
@@ -286,7 +300,11 @@ export class AdminService {
           tipo: dto.tipo,
           enunciado: dto.enunciado.trim(),
           explicacao: dto.explicacao?.trim() ?? null,
+          dica: dto.dica?.trim() ?? null,
           ...(dto.conteudo !== undefined ? { conteudo: dto.conteudo } : {}),
+          ...(dto.revisaoDeId !== undefined
+            ? { revisaoDeId: dto.revisaoDeId }
+            : {}),
           pontos: dto.pontos,
           ordem: dto.ordem,
           opcoes: { create: this.opcoesParaCriacao(dto.opcoes ?? []) },
@@ -307,13 +325,17 @@ export class AdminService {
 
     const tipo = dto.tipo ?? atual.tipo;
     const opcoes =
-      dto.opcoes ?? (tipo === TipoDesafio.ESCRITA_CODIGO ? [] : atual.opcoes);
+      dto.opcoes ??
+      (tipo === TipoDesafio.ESCRITA_CODIGO ||
+      tipo === TipoDesafio.COMPLETAR_LACUNAS
+        ? []
+        : atual.opcoes);
     const conteudo = dto.conteudo ?? atual.conteudo;
     if (dto.tipo !== undefined || dto.opcoes !== undefined) {
       this.validarOpcoes(tipo, opcoes);
     }
     if (dto.tipo !== undefined || dto.conteudo !== undefined) {
-      this.validarConteudoCodigo(tipo, conteudo);
+      this.validarConteudoDesafio(tipo, conteudo);
     }
 
     return this.run(
@@ -329,12 +351,17 @@ export class AdminService {
             ...(dto.explicacao !== undefined
               ? { explicacao: dto.explicacao.trim() }
               : {}),
+            ...(dto.dica !== undefined ? { dica: dto.dica.trim() } : {}),
             ...(dto.conteudo !== undefined ? { conteudo: dto.conteudo } : {}),
+            ...(dto.revisaoDeId !== undefined
+              ? { revisaoDeId: dto.revisaoDeId }
+              : {}),
             ...(dto.pontos !== undefined ? { pontos: dto.pontos } : {}),
             ...(dto.ordem !== undefined ? { ordem: dto.ordem } : {}),
             ...(dto.opcoes !== undefined ||
-            (dto.tipo === TipoDesafio.ESCRITA_CODIGO &&
-              atual.tipo !== TipoDesafio.ESCRITA_CODIGO)
+            ((dto.tipo === TipoDesafio.ESCRITA_CODIGO ||
+              dto.tipo === TipoDesafio.COMPLETAR_LACUNAS) &&
+              atual.tipo !== dto.tipo)
               ? {
                   opcoes: {
                     deleteMany: {},
@@ -366,7 +393,10 @@ export class AdminService {
     tipo: TipoDesafio,
     opcoes: readonly AdminOption[],
   ): void {
-    if (tipo === TipoDesafio.ESCRITA_CODIGO) {
+    if (
+      tipo === TipoDesafio.ESCRITA_CODIGO ||
+      tipo === TipoDesafio.COMPLETAR_LACUNAS
+    ) {
       if (opcoes.length > 0) {
         throw new BadRequestException(
           'Desafios de código não devem conter opções de múltipla escolha.',
@@ -381,7 +411,10 @@ export class AdminService {
       );
     }
 
-    if (tipo === TipoDesafio.ESCOLHA_UNICA) {
+    if (
+      tipo === TipoDesafio.ESCOLHA_UNICA ||
+      tipo === TipoDesafio.ENCONTRAR_ERRO
+    ) {
       if (opcoes.filter(({ correta }) => correta === true).length !== 1) {
         throw new BadRequestException(
           'Escolha única deve ter exatamente uma opção correta.',
@@ -401,7 +434,25 @@ export class AdminService {
     }
   }
 
-  private validarConteudoCodigo(tipo: TipoDesafio, conteudo: unknown): void {
+  private validarConteudoDesafio(tipo: TipoDesafio, conteudo: unknown): void {
+    if (tipo === TipoDesafio.COMPLETAR_LACUNAS) {
+      if (
+        !isRecord(conteudo) ||
+        typeof conteudo['orientacao'] !== 'string' ||
+        typeof conteudo['codigoInicial'] !== 'string' ||
+        !Array.isArray(conteudo['respostasAceitas']) ||
+        conteudo['respostasAceitas'].length === 0 ||
+        !conteudo['respostasAceitas'].every(
+          (answer: unknown) => typeof answer === 'string' && answer.trim(),
+        )
+      ) {
+        throw new BadRequestException(
+          'Informe orientação, código inicial e pelo menos uma resposta aceita para completar as lacunas.',
+        );
+      }
+      return;
+    }
+
     if (tipo !== TipoDesafio.ESCRITA_CODIGO) {
       return;
     }
@@ -415,7 +466,7 @@ export class AdminService {
       conteudo['verificacoes'].length === 0
     ) {
       throw new BadRequestException(
-        'Informe a linguagem, orientação, código inicial e verificações do exercício.',
+        'Informe a linguagem, orientação, código inicial e verificações do exercício de código.',
       );
     }
 

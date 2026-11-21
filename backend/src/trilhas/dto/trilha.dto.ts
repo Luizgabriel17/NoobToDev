@@ -7,10 +7,12 @@ export class TrilhaResponseDto {
     id: number;
     titulo: string;
     ordem: number;
+    xpGanho: number;
     licoes: Array<{
       id: number;
       titulo: string;
       ordem: number;
+      tipo: string;
       status: string;
       xpGanho: number;
     }>;

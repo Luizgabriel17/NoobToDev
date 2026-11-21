@@ -1,5 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { TipoDesafio, type Prisma } from '@prisma/client';
+import { TipoDesafio, TipoLicao, type Prisma } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -87,6 +87,22 @@ export class CreateLicaoDto {
   @IsOptional()
   @IsBoolean({ message: 'O campo publicada deve ser verdadeiro ou falso.' })
   publicada?: boolean;
+
+  @IsOptional()
+  @IsEnum(TipoLicao, { message: 'Informe um tipo de lição válido.' })
+  tipo?: TipoLicao;
+
+  @IsOptional()
+  @IsString({ message: 'A explicação deve ser um texto.' })
+  explicacao?: string;
+
+  @IsOptional()
+  @IsString({ message: 'O código de exemplo deve ser um texto.' })
+  exemploCodigo?: string;
+
+  @IsOptional()
+  @IsString({ message: 'O resultado de exemplo deve ser um texto.' })
+  exemploResultado?: string;
 }
 
 export class UpdateLicaoDto extends PartialType(CreateLicaoDto) {}
@@ -126,6 +142,16 @@ export class CreateDesafioDto {
   explicacao?: string;
 
   @IsOptional()
+  @IsString({ message: 'A dica deve ser um texto.' })
+  @Matches(/\S/, { message: 'A dica não pode ficar vazia.' })
+  dica?: string;
+
+  @IsOptional()
+  @IsInt({ message: 'A questão de revisão deve ser um número inteiro.' })
+  @Min(1, { message: 'A questão de revisão deve ser positiva.' })
+  revisaoDeId?: number;
+
+  @IsOptional()
   @IsObject({ message: 'O conteúdo do desafio deve ser um objeto JSON.' })
   conteudo?: Prisma.InputJsonValue;
 
@@ -138,7 +164,9 @@ export class CreateDesafioDto {
   ordem!: number;
 
   @ValidateIf(
-    (dto: CreateDesafioDto) => dto.tipo !== TipoDesafio.ESCRITA_CODIGO,
+    (dto: CreateDesafioDto) =>
+      dto.tipo !== TipoDesafio.ESCRITA_CODIGO &&
+      dto.tipo !== TipoDesafio.COMPLETAR_LACUNAS,
   )
   @IsArray({ message: 'As opções devem ser enviadas em uma lista.' })
   @ArrayMinSize(2, { message: 'Informe pelo menos duas opções.' })

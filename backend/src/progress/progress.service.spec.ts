@@ -52,6 +52,21 @@ describe('ProgressService', () => {
     ).toThrow(BadRequestException);
   });
 
+  it('corrige ENCONTRAR_ERRO usando escolha única no servidor', () => {
+    const opcoes = [
+      { id: 10, correta: false, posicaoCorreta: null },
+      { id: 11, correta: true, posicaoCorreta: null },
+    ];
+
+    expect(
+      service.evaluateAnswer(
+        TipoDesafio.ENCONTRAR_ERRO,
+        { opcaoId: 11 },
+        opcoes,
+      ),
+    ).toEqual({ acertou: true, respostaCorreta: { opcaoId: 11 } });
+  });
+
   it('corrige ORDENACAO e rejeita respostas incompletas', () => {
     const opcoes = [
       { id: 20, correta: false, posicaoCorreta: 2 },
@@ -117,6 +132,28 @@ describe('ProgressService', () => {
     ).toBe(false);
   });
 
+  it('analisa HTML sem exigir capitalização, aspas ou espaços exatos', () => {
+    const config = {
+      linguagem: 'html',
+      verificacoes: [
+        { tipo: 'HTML_ELEMENT', tag: 'h1', texto: 'Minha página' },
+        {
+          tipo: 'HTML_ATTRIBUTE',
+          tag: 'img',
+          atributo: 'alt',
+          valor: 'Paisagem',
+        },
+      ],
+    };
+
+    expect(
+      service.evaluateCodeAnswer(
+        '<!-- <h1>Minha página</h1> --><H1>Minha&nbsp; página</H1><img alt=Paisagem>',
+        config,
+      ).acertou,
+    ).toBe(true);
+  });
+
   it('corrige declarações CSS mesmo com espaços e regras em media query', () => {
     const config = {
       linguagem: 'css',
@@ -148,6 +185,22 @@ describe('ProgressService', () => {
 
   it('rejeita configuração inválida de exercício de código', () => {
     expect(() => service.evaluateCodeAnswer('<h1>Olá</h1>', {})).toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('corrige lacunas sem diferenciar maiúsculas ou espaços redundantes', () => {
+    const config = {
+      orientacao: 'Complete a lacuna.',
+      codigoInicial: 'const linguagem = ____;',
+      respostasAceitas: ['JavaScript', ' JS '],
+    };
+
+    expect(service.evaluateBlankAnswer(' javascript  ', config).acertou).toBe(
+      true,
+    );
+    expect(service.evaluateBlankAnswer('Python', config).acertou).toBe(false);
+    expect(() => service.evaluateBlankAnswer('x', {})).toThrow(
       BadRequestException,
     );
   });

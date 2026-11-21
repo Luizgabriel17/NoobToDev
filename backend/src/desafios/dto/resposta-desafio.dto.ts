@@ -20,7 +20,7 @@ export class RespostaDesafioResponseDto {
   acertou!: boolean;
   xpGanho!: number;
   explicacao!: string | null;
-  respostaCorreta!: { opcaoId: number } | { ordem: number[] } | null;
+  dica!: string | null;
   xpTotal!: number;
   licao!: LicaoConcluidaResponseDto | null;
 }
@@ -45,4 +45,11 @@ export class RespostaDesafioDto {
   @IsString({ message: 'O código deve ser um texto.' })
   @MaxLength(12000, { message: 'O código não pode exceder 12000 caracteres.' })
   codigo?: string;
+
+  @IsOptional()
+  @IsString({ message: 'A resposta deve ser um texto.' })
+  @MaxLength(12000, {
+    message: 'A resposta não pode exceder 12000 caracteres.',
+  })
+  respostaTexto?: string;
 }

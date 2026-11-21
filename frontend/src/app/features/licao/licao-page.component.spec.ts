@@ -13,6 +13,10 @@ const mockLicao = {
   titulo: 'Estrutura básica',
   moduloTitulo: 'Introdução ao HTML',
   status: 'DISPONIVEL',
+  tipo: 'CONTEUDO',
+  explicacao: null,
+  exemploCodigo: null,
+  exemploResultado: null,
   desafios: [
     {
       id: 11,
@@ -68,7 +72,19 @@ describe('LicaoPageComponent', () => {
       imports: [LicaoPageComponent],
       providers: [
         { provide: LicoesService, useValue: mockLicoesService },
-        { provide: AuthService, useValue: { user: signal({ id: 1, nome: 'Ana', email: 'ana@teste.com', xpTotal: 40, papel: 'STUDENT' }), logout: vi.fn() } },
+        {
+          provide: AuthService,
+          useValue: {
+            user: signal({
+              id: 1,
+              nome: 'Ana',
+              email: 'ana@teste.com',
+              xpTotal: 40,
+              papel: 'STUDENT',
+            }),
+            logout: vi.fn(),
+          },
+        },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '1' } } } },
       ],
     }).compileComponents();
@@ -84,7 +100,7 @@ describe('LicaoPageComponent', () => {
       acertou: true,
       xpGanho: 10,
       explicacao: 'Ótimo',
-      respostaCorreta: { opcaoId: 101 },
+      dica: null,
       xpTotal: 40,
       licao: null,
     });
@@ -117,7 +133,7 @@ describe('LicaoPageComponent', () => {
         acertou: true,
         xpGanho: 10,
         explicacao: 'Resposta correta.',
-        respostaCorreta: { opcaoId: 101 },
+        dica: null,
         xpTotal: 50,
         licao: null,
       }),
@@ -131,13 +147,13 @@ describe('LicaoPageComponent', () => {
     expect(component.feedback()?.xpGanho).toBe(10);
   });
 
-  it('should show error feedback with the correct answer shown', () => {
+  it('should show instructional feedback and allow retry without revealing the answer', () => {
     mockLicoesService.verificarResposta.mockReturnValue(
       of({
         acertou: false,
         xpGanho: 0,
-        explicacao: 'A resposta correta era <h1>.',
-        respostaCorreta: { opcaoId: 101 },
+        explicacao: 'Use o elemento para o título de maior nível.',
+        dica: 'Procure a tag que começa com h.',
         xpTotal: 40,
         licao: null,
       }),
@@ -148,6 +164,8 @@ describe('LicaoPageComponent', () => {
     component.verificarResposta();
 
     expect(component.feedback()?.acertou).toBe(false);
-    expect(component.getRespostaCorretaTexto()).toBe('<h1>');
+    expect(component.feedback()?.dica).toBe('Procure a tag que começa com h.');
+    expect(fixture.nativeElement.textContent).not.toContain('<h1>');
+    expect(fixture.nativeElement.querySelector('.action-row .btn-success')).toBeNull();
   });
 });

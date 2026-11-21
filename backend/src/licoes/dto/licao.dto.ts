@@ -3,6 +3,10 @@ export class LicaoResponseDto {
   titulo!: string;
   moduloTitulo!: string;
   status!: string;
+  tipo!: string;
+  explicacao!: string | null;
+  exemploCodigo!: string | null;
+  exemploResultado!: string | null;
   desafios!: Array<{
     id: number;
     ordem: number;

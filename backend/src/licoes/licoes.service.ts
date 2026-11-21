@@ -18,6 +18,10 @@ export class LicoesService {
         id: true,
         titulo: true,
         publicada: true,
+        tipo: true,
+        explicacao: true,
+        exemploCodigo: true,
+        exemploResultado: true,
         modulo: {
           select: {
             titulo: true,
@@ -63,6 +67,10 @@ export class LicoesService {
       titulo: licao.titulo,
       moduloTitulo: licao.modulo.titulo,
       status: access.status,
+      tipo: licao.tipo,
+      explicacao: licao.explicacao,
+      exemploCodigo: licao.exemploCodigo,
+      exemploResultado: licao.exemploResultado,
       desafios: licao.desafios.map((desafio) => ({
         id: desafio.id,
         ordem: desafio.ordem,
@@ -71,17 +79,21 @@ export class LicoesService {
         pontos: desafio.pontos,
         conteudo: this.conteudoPublico(desafio.tipo, desafio.conteudo),
         respondido: desafio.tentativas.length > 0,
-        opcoes:
-          desafio.tipo === TipoDesafio.ORDENACAO
-            ? this.progress.embaralhar(desafio.opcoes)
-            : desafio.opcoes,
+        opcoes: (desafio.tipo === TipoDesafio.ORDENACAO
+          ? this.progress.embaralhar(desafio.opcoes)
+          : desafio.opcoes
+        ).map(({ id, texto }) => ({ id, texto })),
       })),
     };
   }
 
   private conteudoPublico(tipo: TipoDesafio, conteudo: unknown): unknown {
-    if (tipo !== TipoDesafio.ESCRITA_CODIGO) {
-      return conteudo;
+    if (
+      tipo !== TipoDesafio.ESCRITA_CODIGO &&
+      tipo !== TipoDesafio.COMPLETAR_LACUNAS &&
+      tipo !== TipoDesafio.ENCONTRAR_ERRO
+    ) {
+      return null;
     }
 
     if (typeof conteudo !== 'object' || conteudo === null) {
@@ -89,8 +101,6 @@ export class LicoesService {
     }
 
     if (
-      !('linguagem' in conteudo) ||
-      (conteudo['linguagem'] !== 'html' && conteudo['linguagem'] !== 'css') ||
       !('orientacao' in conteudo) ||
       typeof conteudo['orientacao'] !== 'string' ||
       !('codigoInicial' in conteudo) ||
@@ -99,8 +109,22 @@ export class LicoesService {
       return null;
     }
 
+    if (tipo === TipoDesafio.ESCRITA_CODIGO) {
+      if (
+        !('linguagem' in conteudo) ||
+        (conteudo['linguagem'] !== 'html' && conteudo['linguagem'] !== 'css')
+      ) {
+        return null;
+      }
+
+      return {
+        linguagem: conteudo['linguagem'],
+        orientacao: conteudo['orientacao'],
+        codigoInicial: conteudo['codigoInicial'],
+      };
+    }
+
     return {
-      linguagem: conteudo['linguagem'],
       orientacao: conteudo['orientacao'],
       codigoInicial: conteudo['codigoInicial'],
     };

@@ -51,6 +51,7 @@ describe('DesafiosService', () => {
           tipo,
           pontos: 10,
           explicacao: 'A resposta correta é a primeira opção.',
+          dica: 'Revise o conceito apresentado.',
           conteudo,
           opcoes: [
             { id: 30, correta: true, posicaoCorreta: null },
@@ -158,8 +159,30 @@ describe('DesafiosService', () => {
     expect(resposta).toMatchObject({
       acertou: false,
       xpGanho: 0,
-      respostaCorreta: null,
       licao: null,
     });
+  });
+
+  it('fornece dica e exige acerto para avançar na lição', async () => {
+    const { service, transaction } = criarService(
+      false,
+      'ESCOLHA_UNICA',
+      null,
+      false,
+    );
+
+    const resposta = await service.responder(7, desafioId, { opcaoId: 31 });
+
+    expect(resposta).toMatchObject({
+      acertou: false,
+      dica: 'Revise o conceito apresentado.',
+      licao: null,
+    });
+    expect(resposta).not.toHaveProperty('respostaCorreta');
+    expect(transaction.progressoLicao.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ status: 'DISPONIVEL' }),
+      }),
+    );
   });
 });

@@ -51,8 +51,8 @@ Uma lição pode ser publicada ou não. Trilhas só são apresentadas para lingu
 | `Linguagem` | `linguagens` | Área de estudo e estado ativo. O `slug` é único. |
 | `Trilha` | `trilhas` | Agrupa módulos por linguagem e possui ordem dentro da linguagem. |
 | `Modulo` | `modulos` | Agrupa lições e possui ordem dentro da trilha. |
-| `Licao` | `licoes` | Unidade de aprendizagem, posição no módulo e estado de publicação. |
-| `Desafio` | `desafios` | Enunciado, tipo, explicação, conteúdo de apoio, pontos e ordem na lição. |
+| `Licao` | `licoes` | Unidade de aprendizagem, posição, tipo (conteúdo, projeto ou revisão), explicação, exemplo e estado de publicação. |
+| `Desafio` | `desafios` | Enunciado, tipo, explicação, dica, conteúdo de apoio, referência opcional à questão original, pontos e ordem na lição. |
 | `Opcao` | `opcoes` | Alternativas de escolha ou blocos de ordenação. |
 | `ProgressoLicao` | `progresso_licao` | Estado e XP de uma lição para um usuário, além da data de conclusão. |
 | `Tentativa` | `tentativas` | Resposta enviada, resultado e data de cada tentativa. |
@@ -64,7 +64,9 @@ Os modelos `AtividadeDiaria`, `Conquista` e `UsuarioConquista` preparam recursos
 
 ## Tipos de desafio
 
-O enum `TipoDesafio` aceita `ESCOLHA_UNICA`, `ORDENACAO` e `ESCRITA_CODIGO`. `Opcao.correta` identifica a resposta da escolha única; `Opcao.posicaoCorreta` registra a posição esperada para ordenação. Em desafios de código, o campo JSON `Desafio.conteudo` guarda configuração como linguagem, orientação, código inicial e verificações. A resposta submetida é armazenada como JSON em `Tentativa.resposta`.
+`TipoLicao` classifica a unidade como conteúdo, projeto ou revisão. O enum `TipoDesafio` aceita `ESCOLHA_UNICA`, `ORDENACAO`, `ESCRITA_CODIGO`, `COMPLETAR_LACUNAS` e `ENCONTRAR_ERRO`. `Opcao.correta` identifica a resposta de escolha única ou de identificação de erro; `Opcao.posicaoCorreta` registra a posição esperada para ordenação. Desafios de completar lacunas guardam respostas aceitas no JSON `Desafio.conteudo`; elas não são enviadas ao estudante. Desafios de código guardam linguagem, orientação, código inicial e verificações privadas. A resposta submetida é armazenada como JSON em `Tentativa.resposta`.
+
+`Licao.explicacao`, `exemploCodigo` e `exemploResultado` armazenam o conteúdo instrucional. `Desafio.dica` armazena a orientação exibida após um erro. Questões de revisão podem apontar para a questão de origem por `Desafio.revisaoDeId`, sem duplicar o histórico de tentativas da questão original. Campos novos são opcionais ou têm valor padrão para preservar os registros existentes.
 
 O uso de JSON permite que as respostas e configurações variem conforme o tipo de desafio. A estrutura esperada ainda precisa ser validada pelos DTOs e serviços; o tipo JSON do banco por si só não garante que o objeto tenha formato válido.
 
@@ -72,7 +74,7 @@ O uso de JSON permite que as respostas e configurações variem conforme o tipo 
 
 `ProgressoLicao` relaciona usuário e lição, com uma restrição única para impedir mais de um resumo de progresso da mesma lição para o mesmo usuário. O status pode ser `DISPONIVEL`, `BLOQUEADA` ou `CONCLUIDA`. A sequência de desbloqueio é calculada pela API conforme a ordem de módulos e lições; não é necessário criar previamente uma linha de progresso para cada lição.
 
-Cada submissão gera um registro em `Tentativa`. Isso mantém histórico inclusive para respostas incorretas e permite ao serviço decidir se os desafios da lição já foram respondidos. Uma resposta correta concede os pontos apenas no primeiro acerto daquele desafio. O crédito, a tentativa e a atualização do progresso são feitos dentro de uma transação, e o XP do usuário é atualizado na mesma operação.
+Cada submissão gera um registro em `Tentativa`. Isso mantém histórico inclusive para respostas incorretas. Uma lição só é concluída quando todos os desafios foram acertados; respostas incorretas podem ser reenviadas e não revelam o gabarito. Uma resposta correta concede os pontos apenas no primeiro acerto daquele desafio. O crédito, a tentativa e a atualização do progresso são feitos dentro de uma transação, e o XP do usuário é atualizado na mesma operação.
 
 Em termos de integridade, o modelo de dados protege as relações principais com chaves estrangeiras, índices e unicidade. O serviço administrativo também impede exclusões de conteúdo que tenham progresso ou tentativas relacionadas, preservando o histórico dos estudantes.
 

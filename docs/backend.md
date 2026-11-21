@@ -76,19 +76,19 @@ As regras centrais estão em [`backend/src/progress/progress.service.ts`](../bac
 
 - As lições são ordenadas por módulo e pela ordem dentro do módulo. A primeira fica disponível; as seguintes permanecem bloqueadas até que a lição anterior seja concluída.
 - O acesso é conferido no servidor, mesmo que a interface também mostre visualmente as lições bloqueadas.
-- Existem três tipos de desafio: escolha única, ordenação e escrita de código.
-- Em escolha única, a opção enviada precisa pertencer ao desafio e ser a opção correta para contar como acerto.
+- Os tipos de desafio incluem escolha única, ordenação, escrita de código, completar lacunas e identificar um erro.
+- Em escolha única e identificação de erro, a opção enviada precisa pertencer ao desafio e ser a opção correta para contar como acerto.
 - Em ordenação, a resposta precisa conter cada opção exatamente uma vez e na sequência correta.
-- Em escrita de código, as verificações configuradas para HTML ou CSS são avaliadas no servidor. O conteúdo enviado não é executado.
+- Em lacunas, o servidor compara a resposta normalizada com as respostas aceitas configuradas. Em escrita de código, critérios HTML são avaliados após parse e CSS por verificações estáticas; o conteúdo enviado nunca é executado.
 - Uma resposta correta concede os pontos do desafio somente na primeira vez que aquele usuário acerta aquele desafio. Tentativas posteriores continuam registradas, mas não repetem o XP.
-- Para concluir uma lição, cada desafio precisa ter sido respondido. Nos desafios de código, é necessário acertar; nos outros tipos, uma tentativa é suficiente.
+- Para concluir uma lição, todos os desafios precisam ser acertados. Respostas incorretas incluem explicação e dica quando configuradas, não revelam o gabarito e podem ser tentadas novamente.
 - O envio da resposta, o histórico de tentativa, o progresso da lição e o total de XP são tratados em transação. O registro do usuário é bloqueado durante a operação para evitar crédito duplicado em envios simultâneos.
 
 Ao alterar essas regras, atualize os testes do `progress`, `desafios` ou recurso afetado e confira se a API e a interface continuam usando os mesmos nomes de tipos e campos.
 
 ## Validação e conteúdo administrativo
 
-Os DTOs ficam em `auth/*.dto.ts`, `desafios/dto/` e `admin/dto/`. Eles declaram campos aceitos e usam `class-validator`; os controllers também convertem IDs de rota em inteiros. A validação de conteúdo administrativo inclui regras de consistência, como exatamente uma opção correta para escolha única, posição distinta para cada opção de ordenação e verificações obrigatórias para exercícios de código.
+Os DTOs ficam em `auth/*.dto.ts`, `desafios/dto/` e `admin/dto/`. Eles declaram campos aceitos e usam `class-validator`; os controllers também convertem IDs de rota em inteiros. A validação de conteúdo administrativo inclui regras de consistência, como exatamente uma opção correta para escolha única ou identificação de erro, posição distinta para cada opção de ordenação e critérios obrigatórios para exercícios de código ou lacunas.
 
 As exclusões administrativas verificam se há progresso ou tentativas relacionadas antes de remover conteúdo que apagaria histórico. Respeite essa proteção ao criar novos caminhos de exclusão ou alterar relações.
 

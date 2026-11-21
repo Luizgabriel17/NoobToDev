@@ -200,29 +200,6 @@ export class LicaoPageComponent implements OnInit {
     this.authService.logout();
   }
 
-  getRespostaCorretaTexto(): string {
-    const correta = this.feedback()?.respostaCorreta;
-    const desafio = this.desafioAtual();
-
-    if (!desafio || !correta) {
-      return 'Resposta correta não disponível.';
-    }
-
-    if ('opcaoId' in correta) {
-      const opcao = desafio.opcoes.find((item) => item.id === correta.opcaoId);
-      return opcao?.texto ?? 'Opção correta';
-    }
-
-    const ordem = correta.ordem ?? [];
-    const texto = desafio.opcoes
-      .filter((opcao) => ordem.includes(opcao.id))
-      .sort((a, b) => (ordem.indexOf(a.id) ?? 0) - (ordem.indexOf(b.id) ?? 0))
-      .map((opcao) => opcao.texto)
-      .join(' → ');
-
-    return texto || 'Ordem correta';
-  }
-
   getOpcaoTextoPorId(opcaoId: number): string {
     const desafio = this.desafioAtual();
     return desafio?.opcoes.find((opcao) => opcao.id === opcaoId)?.texto ?? 'Opção';

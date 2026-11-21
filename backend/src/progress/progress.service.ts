@@ -4,6 +4,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { StatusLicao, TipoDesafio } from '@prisma/client';
+import { parseFragment, type DefaultTreeAdapterTypes } from 'parse5';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface LessonProgressState {
@@ -19,7 +20,10 @@ export interface LessonWithState<T extends LessonProgressState> {
 }
 
 export type ChallengeAnswer =
-  { opcaoId: number } | { ordem: number[] } | { codigo: string };
+  | { opcaoId: number }
+  | { ordem: number[] }
+  | { codigo: string }
+  | { respostaTexto: string };
 
 export type StandardChallengeAnswer = { opcaoId: number } | { ordem: number[] };
 
@@ -125,7 +129,10 @@ export class ProgressService {
     resposta: StandardChallengeAnswer,
     opcoes: readonly ChallengeOption[],
   ): { acertou: boolean; respostaCorreta: StandardChallengeAnswer } {
-    if (tipo === TipoDesafio.ESCOLHA_UNICA) {
+    if (
+      tipo === TipoDesafio.ESCOLHA_UNICA ||
+      tipo === TipoDesafio.ENCONTRAR_ERRO
+    ) {
       if (!('opcaoId' in resposta)) {
         throw new BadRequestException(
           'A resposta de escolha única deve conter opcaoId.',
@@ -197,14 +204,47 @@ export class ProgressService {
   ): { acertou: boolean; respostaCorreta: null } {
     const config = this.parseCodeChallengeContent(conteudo);
     const codigoSemComentarios =
-      config.linguagem === 'html'
-        ? codigo.replace(/<!--[\s\S]*?-->/g, '')
-        : codigo.replace(/\/\*[\s\S]*?\*\//g, '');
+      config.linguagem === 'css'
+        ? codigo.replace(/\/\*[\s\S]*?\*\//g, '')
+        : codigo;
     const acertou = config.verificacoes.every((verificacao) =>
-      this.checkCodeRequirement(codigoSemComentarios, verificacao),
+      this.checkCodeRequirement(
+        codigoSemComentarios,
+        verificacao,
+        config.linguagem,
+      ),
     );
 
     return { acertou, respostaCorreta: null };
+  }
+
+  evaluateBlankAnswer(
+    respostaTexto: string,
+    conteudo: unknown,
+  ): { acertou: boolean; respostaCorreta: null } {
+    if (
+      !this.isRecord(conteudo) ||
+      typeof conteudo['orientacao'] !== 'string' ||
+      typeof conteudo['codigoInicial'] !== 'string' ||
+      !Array.isArray(conteudo['respostasAceitas']) ||
+      conteudo['respostasAceitas'].length === 0 ||
+      !conteudo['respostasAceitas'].every(
+        (answer: unknown) => typeof answer === 'string' && answer.trim(),
+      )
+    ) {
+      throw new BadRequestException(
+        'O desafio de completar lacunas não possui respostas válidas.',
+      );
+    }
+
+    const respostaNormalizada = this.normalizarTexto(respostaTexto);
+    return {
+      acertou: conteudo['respostasAceitas'].some(
+        (answer: string) =>
+          this.normalizarTexto(answer) === respostaNormalizada,
+      ),
+      respostaCorreta: null,
+    };
   }
 
   private parseCodeChallengeContent(conteudo: unknown): CodeChallengeContent {
@@ -273,6 +313,7 @@ export class ProgressService {
   private checkCodeRequirement(
     codigo: string,
     verificacao: CodeCheck,
+    linguagem: CodeChallengeContent['linguagem'],
   ): boolean {
     if (verificacao.tipo === 'CSS_MEDIA_QUERY') {
       return this.normalizarCss(codigo).includes(
@@ -284,23 +325,13 @@ export class ProgressService {
       if (!/^[a-z][a-z0-9-]*$/i.test(verificacao.tag)) {
         return false;
       }
-      const openingTag = new RegExp(`<${verificacao.tag}\\b[^>]*>`, 'i').exec(
-        codigo,
+      return this.htmlElements(codigo).some(
+        (element) =>
+          element.tagName === verificacao.tag.toLowerCase() &&
+          this.normalizarTexto(this.htmlText(element.childNodes)).includes(
+            this.normalizarTexto(verificacao.texto),
+          ),
       );
-      if (!openingTag) {
-        return false;
-      }
-
-      const closingTag = new RegExp(`</${verificacao.tag}\\s*>`, 'i').exec(
-        codigo.slice(openingTag.index + openingTag[0].length),
-      );
-      if (!closingTag) {
-        return false;
-      }
-
-      const textStart = openingTag.index + openingTag[0].length;
-      const innerText = codigo.slice(textStart, textStart + closingTag.index);
-      return innerText.includes(verificacao.texto);
     }
 
     if (verificacao.tipo === 'HTML_ATTRIBUTE') {
@@ -311,24 +342,19 @@ export class ProgressService {
         return false;
       }
 
-      const tags = codigo.match(
-        new RegExp(`<${verificacao.tag}\\b[^>]*>`, 'gi'),
+      return this.htmlElements(codigo).some(
+        (element) =>
+          element.tagName === verificacao.tag.toLowerCase() &&
+          element.attrs.some(
+            (attribute) =>
+              attribute.name === verificacao.atributo.toLowerCase() &&
+              attribute.value === verificacao.valor,
+          ),
       );
-      return Boolean(
-        tags?.some((tag) => {
-          const attributes = tag.matchAll(
-            /([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g,
-          );
-          return [...attributes].some((attribute) => {
-            const name = attribute[1].toLowerCase();
-            const value = attribute[2] ?? attribute[3] ?? attribute[4];
-            return (
-              name === verificacao.atributo.toLowerCase() &&
-              value === verificacao.valor
-            );
-          });
-        }),
-      );
+    }
+
+    if (linguagem !== 'css') {
+      return false;
     }
 
     const selectorEsperado = this.normalizarCss(verificacao.seletor);
@@ -360,6 +386,46 @@ export class ProgressService {
     }
 
     return false;
+  }
+
+  private htmlElements(codigo: string): DefaultTreeAdapterTypes.Element[] {
+    const visit = (
+      nodes: readonly DefaultTreeAdapterTypes.ChildNode[],
+    ): DefaultTreeAdapterTypes.Element[] =>
+      nodes.flatMap((node) => {
+        if (!('tagName' in node)) {
+          return [];
+        }
+        return [node, ...visit(node.childNodes)];
+      });
+
+    return visit(parseFragment(codigo).childNodes);
+  }
+
+  private htmlText(
+    nodes: readonly DefaultTreeAdapterTypes.ChildNode[],
+  ): string {
+    return nodes
+      .map((node) =>
+        'value' in node
+          ? node.value
+          : 'childNodes' in node
+            ? this.htmlText(node.childNodes)
+            : '',
+      )
+      .join('');
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private normalizarTexto(value: string): string {
+    return value
+      .normalize('NFKC')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLocaleLowerCase();
   }
 
   private normalizarCss(valor: string): string {

@@ -155,13 +155,11 @@
               feedbackAtual.acertou ? 'Resposta correta!' : 'Resposta incorreta.'
             }}</strong>
             <p *ngIf="feedbackAtual.acertou">+{{ feedbackAtual.xpGanho }} XP</p>
-            <p *ngIf="!feedbackAtual.acertou && desafio.tipo !== 'ESCRITA_CODIGO'">
-              Resposta correta: <code>{{ getRespostaCorretaTexto() }}</code>
-            </p>
-            <p *ngIf="!feedbackAtual.acertou && desafio.tipo === 'ESCRITA_CODIGO'">
-              Seu código ainda não atende a todos os critérios. Ajuste-o e tente novamente.
-            </p>
+            <p *ngIf="!feedbackAtual.acertou">Revise sua resposta e tente novamente.</p>
             <p>{{ feedbackAtual.explicacao }}</p>
+            <p *ngIf="!feedbackAtual.acertou && feedbackAtual.dica">
+              <strong>Dica:</strong> {{ feedbackAtual.dica }}
+            </p>
           </div>
 
           <section
@@ -201,7 +199,7 @@
             </button>
 
             <button
-              *ngIf="feedback() && (desafio.tipo !== 'ESCRITA_CODIGO' || feedback()?.acertou)"
+              *ngIf="feedback()?.acertou"
               type="button"
               class="btn btn-success btn-lg"
               (click)="continuar()"

@@ -66,7 +66,9 @@ Essas regras de interface não substituem a validação do servidor. Os DTOs Nes
 
 Para ordenação, a interface usa Angular CDK Drag and Drop, além de controles para mover os itens. Para escrita de código, a tela recebe a linguagem, a orientação e o código inicial na propriedade `conteudo` do desafio. A resposta é enviada à API, que faz a avaliação definitiva e registra a tentativa. Portanto, as verificações visuais no Angular são uma conveniência de uso, não uma regra de segurança ou avaliação confiável.
 
-Após receber o resultado, a página mostra feedback, atualiza o XP local e avança para o próximo desafio, para a próxima lição ou para a trilha. A API permanece como fonte oficial de progresso e XP.
+Uma resposta incorreta mostra a explicação e a dica retornada pela API, não exibe o gabarito e mantém o estudante no desafio para tentar novamente. Só é possível avançar após o acerto. O backend também exige o acerto de todos os desafios antes de concluir a lição. Os contratos do cliente já reconhecem os tipos de lacuna e identificação de erro; os controles visuais específicos desses tipos serão ligados na fase de interface.
+
+Após receber o resultado, a página atualiza o XP local e avança para o próximo desafio, para a próxima lição ou para a trilha. A API permanece como fonte oficial de progresso e XP.
 
 ## Erros, carregamento e estilo
 

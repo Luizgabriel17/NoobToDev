@@ -13,15 +13,17 @@ Erros seguem o padrão do NestJS: `{ "statusCode": 400, "message": "texto" | ["t
 ## Regras de negócio (valem para back-end e front-end)
 
 1. **Estado das lições** (calculado no servidor): dentro de cada trilha, as lições seguem a ordem (`ordem` do módulo, depois `ordem` da lição). A primeira lição é `DISPONIVEL`. Cada lição seguinte só fica `DISPONIVEL` quando a anterior estiver `CONCLUIDA`. Antes disso é `BLOQUEADA`. Lições com `publicada = false` não aparecem para estudantes.
-2. **Conclusão de lição:** a lição passa a `CONCLUIDA` automaticamente quando o estudante enviar pelo menos uma resposta para cada desafio dela. Errar não impede a conclusão: o sistema mostra a resposta certa e segue.
+2. **Conclusão de lição:** a lição passa a `CONCLUIDA` automaticamente quando o estudante acertar todos os desafios. Uma resposta incorreta mostra explicação e dica, pode ser tentada novamente e não conclui o desafio.
 3. **XP:** cada desafio vale `pontos`. O XP só é concedido na primeira resposta correta de cada desafio por usuário. Repetir a lição não gera XP de novo. O XP vai para `ProgressoLicao.xpGanho` e `Usuario.xpTotal` na mesma transação que grava a `Tentativa`.
-4. **Correção no servidor:** o cliente nunca recebe `correta`, `posicaoCorreta` nem `explicacao` antes de responder.
+4. **Correção no servidor:** o cliente nunca recebe `correta`, `posicaoCorreta`, respostas aceitas de lacunas ou verificações de código. A resposta da API não inclui o gabarito, mesmo após uma tentativa.
 5. **Tipos de desafio:**
    - `ESCOLHA_UNICA`: a resposta é `{ "opcaoId": number }`. Está correta se a opção tiver `correta = true`.
+   - `ENCONTRAR_ERRO`: a resposta é `{ "opcaoId": number }`; identifica a alternativa que descreve o erro.
    - `ORDENACAO`: a resposta é `{ "ordem": number[] }`, com os ids de todas as opções do desafio, uma vez cada, na ordem escolhida. Está correta se a ordem for igual à ordenação por `posicaoCorreta` crescente. As opções chegam embaralhadas ao cliente.
+   - `COMPLETAR_LACUNAS`: a resposta é `{ "respostaTexto": string }`, limitada a 12.000 caracteres. O servidor compara com as respostas aceitas após normalizar capitalização e espaços.
    - `ESCRITA_CODIGO`: a resposta é `{ "codigo": string }`, limitada a 12.000 caracteres. O servidor verifica os critérios configurados para o exercício (elementos/atributos HTML ou declarações CSS) sem executar o código. As verificações não são enviadas ao aluno; respostas incorretas podem ser reenviadas e não concluem a lição.
 
-   Para exercícios de código, `Desafio.conteudo` armazena `linguagem`, `orientacao`, `codigoInicial` e `verificacoes`. O endpoint de lições envia ao estudante somente os três primeiros campos; as verificações ficam privadas no servidor. Critérios HTML aceitos: `HTML_ELEMENT` (`tag`, `texto`), `HTML_ATTRIBUTE` (`tag`, `atributo`, `valor`), `CSS_DECLARATION` (`seletor`, `propriedade`, `valor`) e `CSS_MEDIA_QUERY` (`condicao`).
+   Para exercícios de código, `Desafio.conteudo` armazena `linguagem`, `orientacao`, `codigoInicial` e `verificacoes`. O endpoint de lições envia ao estudante somente os três primeiros campos; as verificações ficam privadas no servidor. Critérios HTML são avaliados após parse do documento. Para lacunas, `conteudo` armazena `orientacao`, `codigoInicial` e `respostasAceitas`; a API envia apenas orientação e código inicial.
 6. **Lição reaberta:** uma lição `CONCLUIDA` pode ser refeita para revisão, mas continua `CONCLUIDA` e não gera XP novamente.
 
 ## Rotas
@@ -52,11 +54,13 @@ Lista as trilhas das linguagens ativas, com módulos, lições publicadas e o es
         "id": 1,
         "titulo": "Introdução ao HTML",
         "ordem": 1,
+        "xpGanho": 30,
         "licoes": [
           {
             "id": 1,
             "titulo": "Estrutura básica",
             "ordem": 1,
+            "tipo": "CONTEUDO",
             "status": "CONCLUIDA",
             "xpGanho": 30
           },
@@ -84,6 +88,10 @@ Devolve a lição com os desafios, sem gabarito.
   "titulo": "Textos: h1 e p",
   "moduloTitulo": "Introdução ao HTML",
   "status": "DISPONIVEL",
+  "tipo": "CONTEUDO",
+  "explicacao": "A explicação didática da lição fica armazenada no banco.",
+  "exemploCodigo": "<h1>Olá</h1>",
+  "exemploResultado": "Olá",
   "desafios": [
     {
       "id": 10,
@@ -113,16 +121,15 @@ Corpo: `{ "opcaoId": 100 }` (escolha única), `{ "ordem": [5, 3, 4] }` (ordenaç
   "acertou": true,
   "xpGanho": 10,
   "explicacao": "A tag h1 define o título principal da página.",
-  "respostaCorreta": { "opcaoId": 100 },
+  "dica": null,
   "xpTotal": 40,
   "licao": null
 }
 ```
 
-- `respostaCorreta` tem o mesmo formato da resposta do tipo (`{ opcaoId }` ou `{ ordem }`); em escrita de código é `null` para não revelar a solução.
 - `xpGanho` é 0 quando errou ou quando o desafio já tinha sido acertado antes.
-- Exercícios de código podem ser reenviados. Uma resposta incorreta não conclui esse desafio nem a lição; o XP continua sendo concedido apenas na primeira resposta correta.
-- `licao` é `null` enquanto houver desafios sem resposta. Na resposta ao último desafio, vem `{ "concluida": true, "acertos": 3, "total": 4, "xpGanho": 30, "proximaLicaoId": 3 }`, com `proximaLicaoId` igual a `null` se for a última da trilha.
+- Uma resposta incorreta inclui `dica` quando houver uma configurada, não inclui o gabarito e pode ser reenviada. Nenhum tipo de desafio conta como concluído antes do acerto.
+- `licao` é `null` enquanto houver desafios sem acerto. Na resposta ao último desafio acertado, vem `{ "concluida": true, "acertos": 3, "total": 4, "xpGanho": 30, "proximaLicaoId": 3 }`, com `proximaLicaoId` igual a `null` se for a última da trilha.
 
 Erros: 400 (formato inválido para o tipo, opção que não pertence ao desafio, ordem incompleta), 403 (lição bloqueada), 404.
 

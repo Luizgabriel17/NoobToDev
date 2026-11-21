@@ -29,7 +29,8 @@ O frontend não é a fonte oficial dos dados: o progresso, a avaliação de resp
 - Cadastro e login com senha armazenada como hash e sessão baseada em JWT.
 - Listagem de trilhas ativas, módulos e lições publicadas.
 - Desbloqueio sequencial de lições de acordo com o progresso.
-- Desafios de escolha única, ordenação de opções e escrita de código HTML/CSS.
+- Desafios de escolha única, ordenação, completar lacunas, identificar erros e escrita de código HTML/CSS.
+- Conteúdo didático, exemplos, projetos e revisões armazenados no banco; dicas após respostas incorretas.
 - Histórico de tentativas, conclusão de lições e pontos de experiência.
 - Perfil com total de XP e resumo de lições concluídas.
 - Endpoints administrativos para manutenção de linguagens, trilhas, módulos, lições, desafios e usuários.

@@ -30,6 +30,7 @@ export class DesafiosService {
         tipo: true,
         pontos: true,
         explicacao: true,
+        dica: true,
         conteudo: true,
         opcoes: {
           select: { id: true, correta: true, posicaoCorreta: true },
@@ -63,7 +64,12 @@ export class DesafiosService {
     const evaluation =
       'codigo' in answer
         ? this.progress.evaluateCodeAnswer(answer.codigo, desafio.conteudo)
-        : this.progress.evaluateAnswer(desafio.tipo, answer, desafio.opcoes);
+        : 'respostaTexto' in answer
+          ? this.progress.evaluateBlankAnswer(
+              answer.respostaTexto,
+              desafio.conteudo,
+            )
+          : this.progress.evaluateAnswer(desafio.tipo, answer, desafio.opcoes);
     const access = await this.progress.requireAvailableLesson(
       usuarioId,
       desafio.licao.modulo.trilha.id,
@@ -105,15 +111,11 @@ export class DesafiosService {
           select: {
             desafioId: true,
             acertou: true,
-            desafio: { select: { tipo: true } },
           },
         });
         const challengeIds = desafio.licao.desafios.map(({ id }) => id);
         const answeredChallengeIds = tentativasDaLicao
-          .filter(
-            ({ acertou, desafio: answeredChallenge }) =>
-              answeredChallenge.tipo !== TipoDesafio.ESCRITA_CODIGO || acertou,
-          )
+          .filter(({ acertou }) => acertou)
           .map(({ desafioId: id }) => id);
         const concluida = this.progress.isLessonCompleted(
           challengeIds,
@@ -178,7 +180,7 @@ export class DesafiosService {
       acertou: evaluation.acertou,
       xpGanho: resultado.xpDesafio,
       explicacao: desafio.explicacao,
-      respostaCorreta: evaluation.respostaCorreta,
+      dica: evaluation.acertou ? null : desafio.dica,
       xpTotal: resultado.xpTotal,
       licao: resultado.concluida
         ? {
@@ -201,7 +203,8 @@ export class DesafiosService {
         typeof dto.codigo !== 'string' ||
         dto.codigo.trim().length === 0 ||
         dto.opcaoId !== undefined ||
-        dto.ordem !== undefined
+        dto.ordem !== undefined ||
+        dto.respostaTexto !== undefined
       ) {
         throw new BadRequestException(
           'Informe somente um código não vazio para este desafio.',
@@ -216,7 +219,30 @@ export class DesafiosService {
       );
     }
 
-    if (tipo === TipoDesafio.ESCOLHA_UNICA) {
+    if (tipo === TipoDesafio.COMPLETAR_LACUNAS) {
+      if (
+        typeof dto.respostaTexto !== 'string' ||
+        dto.respostaTexto.trim().length === 0 ||
+        dto.opcaoId !== undefined ||
+        dto.ordem !== undefined
+      ) {
+        throw new BadRequestException(
+          'Informe somente uma resposta não vazia para completar as lacunas.',
+        );
+      }
+      return { respostaTexto: dto.respostaTexto };
+    }
+
+    if (dto.respostaTexto !== undefined) {
+      throw new BadRequestException(
+        'O campo respostaTexto só pode ser usado para completar lacunas.',
+      );
+    }
+
+    if (
+      tipo === TipoDesafio.ESCOLHA_UNICA ||
+      tipo === TipoDesafio.ENCONTRAR_ERRO
+    ) {
       if (typeof dto.opcaoId !== 'number' || dto.ordem !== undefined) {
         throw new BadRequestException(
           'Informe somente opcaoId para este desafio.',

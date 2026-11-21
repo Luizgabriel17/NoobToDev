@@ -1,4 +1,7 @@
-export type TipoDesafio = 'ESCOLHA_UNICA' | 'ORDENACAO' | 'ESCRITA_CODIGO';
+export type TipoDesafio =
+  'ESCOLHA_UNICA' | 'ORDENACAO' | 'ESCRITA_CODIGO' | 'COMPLETAR_LACUNAS' | 'ENCONTRAR_ERRO';
+
+export type TipoLicao = 'CONTEUDO' | 'PROJETO' | 'REVISAO';
 
 export interface OpcaoDesafio {
   id: number;
@@ -23,19 +26,18 @@ export interface LicaoDetalhe {
   titulo: string;
   moduloTitulo: string;
   status: 'CONCLUIDA' | 'DISPONIVEL' | 'BLOQUEADA';
+  tipo: TipoLicao;
+  explicacao: string | null;
+  exemploCodigo: string | null;
+  exemploResultado: string | null;
   desafios: Desafio[];
-}
-
-export interface RespostaCorreta {
-  opcaoId?: number;
-  ordem?: number[];
 }
 
 export interface RespostaResultado {
   acertou: boolean;
   xpGanho: number;
   explicacao: string | null;
-  respostaCorreta: RespostaCorreta | null;
+  dica: string | null;
   xpTotal: number;
   licao: null | {
     concluida: boolean;

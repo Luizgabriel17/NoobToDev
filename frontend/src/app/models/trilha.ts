@@ -10,6 +10,7 @@ export interface TrilhaLicao {
   id: number;
   titulo: string;
   ordem: number;
+  tipo: 'CONTEUDO' | 'PROJETO' | 'REVISAO';
   status: LicaoStatus;
   xpGanho: number;
 }
@@ -18,6 +19,7 @@ export interface TrilhaModulo {
   id: number;
   titulo: string;
   ordem: number;
+  xpGanho: number;
   licoes: TrilhaLicao[];
 }
 
