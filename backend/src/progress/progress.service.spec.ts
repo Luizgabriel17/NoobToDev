@@ -183,6 +183,41 @@ describe('ProgressService', () => {
     ).toBe(false);
   });
 
+  it('valida JavaScript por estrutura sem executar o código', () => {
+    const config = {
+      linguagem: 'javascript',
+      verificacoes: [
+        { tipo: 'JS_DECLARATION', nome: 'nomes', especie: 'const' },
+        { tipo: 'JS_FUNCTION', nome: 'nomesAtivos' },
+        { tipo: 'JS_ARRAY_METHOD', metodo: 'filter' },
+        { tipo: 'JS_ARRAY_METHOD', metodo: 'map' },
+      ],
+    };
+
+    expect(
+      service.evaluateCodeAnswer(
+        'const nomes = []; const nomesAtivos = (itens) => itens.filter(Boolean).map(String);',
+        config,
+      ).acertou,
+    ).toBe(true);
+    expect(
+      service.evaluateCodeAnswer(
+        'const nomes = []; const nomesAtivos = (itens) => itens.map(String);',
+        config,
+      ).acertou,
+    ).toBe(false);
+    expect(service.evaluateCodeAnswer('const = ;', config).acertou).toBe(false);
+    expect(() =>
+      service.evaluateCodeAnswer('const nomes = [];', {
+        ...config,
+        verificacoes: [
+          { tipo: 'JS_DECLARATION', nome: 'nomes', especie: 'const' },
+        ],
+        linguagem: 'html',
+      }),
+    ).toThrow(BadRequestException);
+  });
+
   it('rejeita configuração inválida de exercício de código', () => {
     expect(() => service.evaluateCodeAnswer('<h1>Olá</h1>', {})).toThrow(
       BadRequestException,

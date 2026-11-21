@@ -83,6 +83,7 @@ export class TrilhasService {
             (total, licao) => total + (licao.progressos[0]?.xpGanho ?? 0),
             0,
           ),
+          emBreve: modulo.licoes.length === 0,
           licoes: modulo.licoes.map((licao) => ({
             id: licao.id,
             titulo: licao.titulo,

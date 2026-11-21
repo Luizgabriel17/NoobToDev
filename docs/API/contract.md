@@ -55,6 +55,7 @@ Lista as trilhas das linguagens ativas, com módulos, lições publicadas e o es
         "titulo": "Introdução ao HTML",
         "ordem": 1,
         "xpGanho": 30,
+        "emBreve": false,
         "licoes": [
           {
             "id": 1,
@@ -77,6 +78,8 @@ Lista as trilhas das linguagens ativas, com módulos, lições publicadas e o es
   }
 ]
 ```
+
+Módulos estruturados para publicação futura têm `emBreve: true` e uma lista de lições publicadas vazia.
 
 ### `GET /licoes/:id`
 
@@ -109,6 +112,8 @@ Devolve a lição com os desafios, sem gabarito.
   ]
 }
 ```
+
+O exemplo guiado e a explicação da lição vêm do banco. Para desafios de escrita de código, o campo `conteudo` contém apenas linguagem, orientação e código inicial, sem verificações privadas.
 
 Erros: 404 (não existe ou não publicada), 403 (lição `BLOQUEADA`).
 

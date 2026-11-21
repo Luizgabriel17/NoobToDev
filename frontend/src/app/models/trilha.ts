@@ -20,6 +20,7 @@ export interface TrilhaModulo {
   titulo: string;
   ordem: number;
   xpGanho: number;
+  emBreve: boolean;
   licoes: TrilhaLicao[];
 }
 

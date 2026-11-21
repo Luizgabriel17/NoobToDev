@@ -4,6 +4,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { StatusLicao, TipoDesafio } from '@prisma/client';
+import { parse as parseJavaScript, type Node } from 'acorn';
 import { parseFragment, type DefaultTreeAdapterTypes } from 'parse5';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -41,10 +42,13 @@ type CodeCheck =
       propriedade: string;
       valor: string;
     }
-  | { tipo: 'CSS_MEDIA_QUERY'; condicao: string };
+  | { tipo: 'CSS_MEDIA_QUERY'; condicao: string }
+  | { tipo: 'JS_DECLARATION'; nome: string; especie: 'const' | 'let' }
+  | { tipo: 'JS_FUNCTION'; nome: string }
+  | { tipo: 'JS_ARRAY_METHOD'; metodo: 'map' | 'filter' | 'find' };
 
 interface CodeChallengeContent {
-  linguagem: 'html' | 'css';
+  linguagem: 'html' | 'css' | 'javascript';
   verificacoes: CodeCheck[];
 }
 
@@ -203,17 +207,38 @@ export class ProgressService {
     conteudo: unknown,
   ): { acertou: boolean; respostaCorreta: null } {
     const config = this.parseCodeChallengeContent(conteudo);
+    let arvoreJavaScript: Node | undefined;
+    if (config.linguagem === 'javascript') {
+      try {
+        arvoreJavaScript = parseJavaScript(codigo, {
+          ecmaVersion: 2023,
+          sourceType: 'module',
+        });
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) {
+          throw error;
+        }
+      }
+    }
+
     const codigoSemComentarios =
       config.linguagem === 'css'
         ? codigo.replace(/\/\*[\s\S]*?\*\//g, '')
         : codigo;
-    const acertou = config.verificacoes.every((verificacao) =>
-      this.checkCodeRequirement(
-        codigoSemComentarios,
-        verificacao,
-        config.linguagem,
-      ),
-    );
+    const acertou =
+      (config.linguagem !== 'javascript' || arvoreJavaScript !== undefined) &&
+      config.verificacoes.every((verificacao) =>
+        config.linguagem === 'javascript'
+          ? this.checkJavaScriptRequirement(
+              arvoreJavaScript as Node,
+              verificacao,
+            )
+          : this.checkCodeRequirement(
+              codigoSemComentarios,
+              verificacao,
+              config.linguagem,
+            ),
+      );
 
     return { acertou, respostaCorreta: null };
   }
@@ -277,26 +302,54 @@ export class ProgressService {
       if (value['tipo'] === 'CSS_MEDIA_QUERY') {
         return isString(value['condicao']);
       }
+      if (value['tipo'] === 'JS_DECLARATION') {
+        return (
+          isString(value['nome']) &&
+          /^[A-Za-z_$][\w$]*$/.test(value['nome']) &&
+          (value['especie'] === 'const' || value['especie'] === 'let')
+        );
+      }
+      if (value['tipo'] === 'JS_FUNCTION') {
+        return (
+          isString(value['nome']) && /^[A-Za-z_$][\w$]*$/.test(value['nome'])
+        );
+      }
+      if (value['tipo'] === 'JS_ARRAY_METHOD') {
+        return (
+          value['metodo'] === 'map' ||
+          value['metodo'] === 'filter' ||
+          value['metodo'] === 'find'
+        );
+      }
       return false;
     };
 
     if (
       !isRecord(conteudo) ||
-      (conteudo['linguagem'] !== 'html' && conteudo['linguagem'] !== 'css') ||
+      (conteudo['linguagem'] !== 'html' &&
+        conteudo['linguagem'] !== 'css' &&
+        conteudo['linguagem'] !== 'javascript') ||
       !Array.isArray(conteudo['verificacoes']) ||
       conteudo['verificacoes'].length === 0 ||
       !conteudo['verificacoes'].every(isValidCheck) ||
       (conteudo['linguagem'] === 'html' &&
         conteudo['verificacoes'].some(
           (check) =>
-            check['tipo'] === 'CSS_DECLARATION' ||
-            check['tipo'] === 'CSS_MEDIA_QUERY',
+            check['tipo'] !== 'HTML_ELEMENT' &&
+            check['tipo'] !== 'HTML_ATTRIBUTE',
         )) ||
       (conteudo['linguagem'] === 'css' &&
         conteudo['verificacoes'].some(
           (check) =>
             check['tipo'] !== 'CSS_DECLARATION' &&
             check['tipo'] !== 'CSS_MEDIA_QUERY',
+        )) ||
+      (conteudo['linguagem'] === 'javascript' &&
+        conteudo['verificacoes'].some(
+          (check) =>
+            check['tipo'] !== 'JS_DECLARATION' &&
+            check['tipo'] !== 'JS_FUNCTION' &&
+            check['tipo'] !== 'JS_ARRAY_METHOD',
         ))
     ) {
       throw new BadRequestException(
@@ -313,7 +366,7 @@ export class ProgressService {
   private checkCodeRequirement(
     codigo: string,
     verificacao: CodeCheck,
-    linguagem: CodeChallengeContent['linguagem'],
+    linguagem: 'html' | 'css',
   ): boolean {
     if (verificacao.tipo === 'CSS_MEDIA_QUERY') {
       return this.normalizarCss(codigo).includes(
@@ -325,6 +378,7 @@ export class ProgressService {
       if (!/^[a-z][a-z0-9-]*$/i.test(verificacao.tag)) {
         return false;
       }
+
       return this.htmlElements(codigo).some(
         (element) =>
           element.tagName === verificacao.tag.toLowerCase() &&
@@ -353,7 +407,7 @@ export class ProgressService {
       );
     }
 
-    if (linguagem !== 'css') {
+    if (verificacao.tipo !== 'CSS_DECLARATION' || linguagem !== 'css') {
       return false;
     }
 
@@ -386,6 +440,102 @@ export class ProgressService {
     }
 
     return false;
+  }
+
+  private checkJavaScriptRequirement(
+    program: Node,
+    verificacao: CodeCheck,
+  ): boolean {
+    if (
+      verificacao.tipo !== 'JS_DECLARATION' &&
+      verificacao.tipo !== 'JS_FUNCTION' &&
+      verificacao.tipo !== 'JS_ARRAY_METHOD'
+    ) {
+      return false;
+    }
+
+    let found = false;
+    const visit = (node: Node) => {
+      if (found) {
+        return;
+      }
+
+      if (
+        verificacao.tipo === 'JS_DECLARATION' &&
+        node.type === 'VariableDeclaration'
+      ) {
+        const declaration = node as Node & {
+          kind: string;
+          declarations: Array<{ id: Node }>;
+        };
+        found =
+          declaration.kind === verificacao.especie &&
+          declaration.declarations.some(
+            ({ id }) =>
+              id.type === 'Identifier' &&
+              (id as Node & { name: string }).name === verificacao.nome,
+          );
+      } else if (
+        verificacao.tipo === 'JS_FUNCTION' &&
+        node.type === 'FunctionDeclaration'
+      ) {
+        const declaration = node as Node & { id: Node | null };
+        found =
+          declaration.id?.type === 'Identifier' &&
+          (declaration.id as Node & { name: string }).name === verificacao.nome;
+      } else if (
+        verificacao.tipo === 'JS_FUNCTION' &&
+        node.type === 'VariableDeclarator'
+      ) {
+        const declaration = node as Node & { id: Node; init: Node | null };
+        found =
+          declaration.id.type === 'Identifier' &&
+          (declaration.id as Node & { name: string }).name ===
+            verificacao.nome &&
+          (declaration.init?.type === 'ArrowFunctionExpression' ||
+            declaration.init?.type === 'FunctionExpression');
+      } else if (
+        verificacao.tipo === 'JS_ARRAY_METHOD' &&
+        node.type === 'CallExpression'
+      ) {
+        const call = node as Node & { callee: Node };
+        if (call.callee.type === 'MemberExpression') {
+          const member = call.callee as Node & {
+            computed: boolean;
+            property: Node;
+          };
+          found =
+            !member.computed &&
+            member.property.type === 'Identifier' &&
+            (member.property as Node & { name: string }).name ===
+              verificacao.metodo;
+        }
+      }
+
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) {
+          for (const child of value) {
+            if (this.isAstNode(child)) {
+              visit(child);
+            }
+          }
+        } else if (this.isAstNode(value)) {
+          visit(value);
+        }
+      }
+    };
+
+    visit(program);
+    return found;
+  }
+
+  private isAstNode(value: unknown): value is Node {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'type' in value &&
+      typeof value.type === 'string'
+    );
   }
 
   private htmlElements(codigo: string): DefaultTreeAdapterTypes.Element[] {

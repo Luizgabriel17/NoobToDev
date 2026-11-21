@@ -8,6 +8,7 @@ export class TrilhaResponseDto {
     titulo: string;
     ordem: number;
     xpGanho: number;
+    emBreve: boolean;
     licoes: Array<{
       id: number;
       titulo: string;

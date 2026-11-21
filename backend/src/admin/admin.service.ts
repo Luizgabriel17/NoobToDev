@@ -459,7 +459,9 @@ export class AdminService {
 
     if (
       !isRecord(conteudo) ||
-      (conteudo['linguagem'] !== 'html' && conteudo['linguagem'] !== 'css') ||
+      (conteudo['linguagem'] !== 'html' &&
+        conteudo['linguagem'] !== 'css' &&
+        conteudo['linguagem'] !== 'javascript') ||
       typeof conteudo['orientacao'] !== 'string' ||
       typeof conteudo['codigoInicial'] !== 'string' ||
       !Array.isArray(conteudo['verificacoes']) ||
@@ -499,12 +501,57 @@ export class AdminService {
         if (verificacao['tipo'] === 'CSS_MEDIA_QUERY') {
           return typeof verificacao['condicao'] === 'string';
         }
+        if (verificacao['tipo'] === 'JS_DECLARATION') {
+          return (
+            typeof verificacao['nome'] === 'string' &&
+            /^[A-Za-z_$][\w$]*$/.test(verificacao['nome']) &&
+            (verificacao['especie'] === 'const' ||
+              verificacao['especie'] === 'let')
+          );
+        }
+        if (verificacao['tipo'] === 'JS_FUNCTION') {
+          return (
+            typeof verificacao['nome'] === 'string' &&
+            /^[A-Za-z_$][\w$]*$/.test(verificacao['nome'])
+          );
+        }
+        if (verificacao['tipo'] === 'JS_ARRAY_METHOD') {
+          return ['map', 'filter', 'find'].includes(
+            String(verificacao['metodo']),
+          );
+        }
         return false;
       },
     );
     if (!verificacoesValidas) {
       throw new BadRequestException(
         'As verificações do exercício de código são inválidas.',
+      );
+    }
+
+    const verificacoes = conteudo['verificacoes'];
+    const tiposJavaScript = [
+      'JS_DECLARATION',
+      'JS_FUNCTION',
+      'JS_ARRAY_METHOD',
+    ];
+    const tiposCss = ['CSS_DECLARATION', 'CSS_MEDIA_QUERY'];
+    const tiposHtml = ['HTML_ELEMENT', 'HTML_ATTRIBUTE'];
+    const permitidos =
+      conteudo['linguagem'] === 'javascript'
+        ? tiposJavaScript
+        : conteudo['linguagem'] === 'css'
+          ? tiposCss
+          : tiposHtml;
+    if (
+      verificacoes.some(
+        (verificacao: unknown) =>
+          !isRecord(verificacao) ||
+          !permitidos.includes(String(verificacao['tipo'])),
+      )
+    ) {
+      throw new BadRequestException(
+        'As verificações não correspondem à linguagem do exercício.',
       );
     }
   }

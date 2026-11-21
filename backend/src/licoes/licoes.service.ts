@@ -112,7 +112,9 @@ export class LicoesService {
     if (tipo === TipoDesafio.ESCRITA_CODIGO) {
       if (
         !('linguagem' in conteudo) ||
-        (conteudo['linguagem'] !== 'html' && conteudo['linguagem'] !== 'css')
+        (conteudo['linguagem'] !== 'html' &&
+          conteudo['linguagem'] !== 'css' &&
+          conteudo['linguagem'] !== 'javascript')
       ) {
         return null;
       }

@@ -8,7 +8,7 @@ import { LicoesService } from '../../services/licoes.service';
 import { RespostaResultado } from '../../models/licao';
 
 interface CodeEditorContent {
-  linguagem: 'html' | 'css';
+  linguagem: 'html' | 'css' | 'javascript';
   orientacao: string;
   codigoInicial: string;
 }
@@ -20,7 +20,9 @@ function isCodeEditorContent(value: unknown): value is CodeEditorContent {
 
   return (
     'linguagem' in value &&
-    (value['linguagem'] === 'html' || value['linguagem'] === 'css') &&
+    (value['linguagem'] === 'html' ||
+      value['linguagem'] === 'css' ||
+      value['linguagem'] === 'javascript') &&
     'orientacao' in value &&
     typeof value['orientacao'] === 'string' &&
     'codigoInicial' in value &&
