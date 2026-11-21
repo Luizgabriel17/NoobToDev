@@ -22,7 +22,8 @@
   </div>
 
   <ng-container *ngIf="!loading() && licao() as currentLicao">
-    <div *ngIf="resultadoFinal(); else desafioTemplate" class="result-card">
+    <!-- Resultado final da lição -->
+    <div *ngIf="resultadoFinal(); else desafioTemplate" class="result-card" role="region" aria-label="Resultado da lição">
       <div class="result-badge">Resultado</div>
       <h1>Lição concluída</h1>
       <p class="summary-text">
@@ -55,13 +56,27 @@
       </div>
     </div>
 
+    <!-- Template dos desafios -->
     <ng-template #desafioTemplate>
       <div class="lesson-card">
+        <!-- Cabeçalho da lição e barra de progresso -->
         <div
-          class="lesson-progress-header d-flex flex-column flex-md-row justify-content-between gap-3 mb-3"
+          class="lesson-progress-header d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 mb-4"
         >
           <div>
-            <p class="eyebrow">{{ currentLicao.moduloTitulo }}</p>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="eyebrow mb-0">{{ currentLicao.moduloTitulo }}</span>
+              <span
+                *ngIf="currentLicao.tipo !== 'CONTEUDO'"
+                class="badge"
+                [ngClass]="{
+                  'bg-purple-subtle text-purple border border-purple': currentLicao.tipo === 'PROJETO',
+                  'bg-teal-subtle text-teal border border-teal': currentLicao.tipo === 'REVISAO'
+                }"
+              >
+                {{ getLicaoTipoLabel(currentLicao.tipo) }}
+              </span>
+            </div>
             <h1>{{ currentLicao.titulo }}</h1>
           </div>
           <div class="progress-summary">
@@ -69,7 +84,14 @@
               <span>Desafio {{ indiceAtual() + 1 }}</span>
               <span>{{ indiceAtual() + 1 }}/{{ currentLicao.desafios.length }}</span>
             </div>
-            <div class="progress" aria-label="Progresso da lição">
+            <div
+              class="progress"
+              role="progressbar"
+              [attr.aria-valuenow]="indiceAtual() + 1"
+              aria-valuemin="1"
+              [attr.aria-valuemax]="currentLicao.desafios.length"
+              aria-label="Progresso da lição"
+            >
               <div
                 class="progress-bar"
                 [style.width.%]="((indiceAtual() + 1) / currentLicao.desafios.length) * 100"
@@ -78,22 +100,85 @@
           </div>
         </div>
 
-        <ng-container *ngIf="desafioAtual() as desafio">
-          <section class="challenge-card">
-            <p class="challenge-type">
-              {{
-                desafio.tipo === 'ESCRITA_CODIGO'
-                  ? 'Escrita de código'
-                  : desafio.tipo === 'ORDENACAO'
-                    ? 'Ordenação'
-                    : 'Escolha única'
-              }}
+        <!-- Seção de Mini-Explicação e Exemplo Guiado da Lição da API -->
+        <section
+          *ngIf="currentLicao.explicacao || currentLicao.exemploCodigo"
+          class="lesson-intro-card mb-4"
+          aria-labelledby="lesson-intro-heading"
+        >
+          <div class="lesson-intro-header d-flex align-items-center justify-content-between mb-2">
+            <h2 id="lesson-intro-heading" class="lesson-intro-title">Conceito e Exemplo Guiado</h2>
+            <span class="badge bg-light text-dark border">Material Didático</span>
+          </div>
+
+          <!-- Mini-explicação da lição -->
+          <div *ngIf="currentLicao.explicacao" class="lesson-explanation mb-3">
+            <p *ngFor="let paragrafo of currentLicao.explicacao.split('\n\n')" class="mb-2">
+              {{ paragrafo }}
             </p>
+          </div>
+
+          <!-- Exemplo de código comentado com alto contraste -->
+          <div *ngIf="currentLicao.exemploCodigo" class="lesson-example-box mb-3">
+            <div class="example-code-header d-flex justify-content-between align-items-center">
+              <span>Exemplo de código comentado</span>
+            </div>
+            <pre class="example-code font-monospace"><code>{{ currentLicao.exemploCodigo }}</code></pre>
+          </div>
+
+          <!-- Resultado guiado / esperado -->
+          <div *ngIf="currentLicao.exemploResultado" class="lesson-guided-result mb-3">
+            <strong class="d-block mb-1">Resultado esperado / guiado:</strong>
+            <p class="mb-0 text-muted">{{ currentLicao.exemploResultado }}</p>
+          </div>
+
+          <!-- Pré-visualização renderizada para exemplos HTML/CSS -->
+          <div *ngIf="temPreviaExemploLicao()" class="example-preview-container mb-2">
+            <div class="preview-header d-flex justify-content-between align-items-center">
+              <span class="preview-badge">Pré-visualização renderizada</span>
+              <span class="sandbox-tag">iframe sandboxed isolado</span>
+            </div>
+            <iframe
+              class="preview-frame"
+              sandbox=""
+              [srcdoc]="previewExemploLicao()"
+              title="Pré-visualização do exemplo guiado de código"
+              loading="lazy"
+            ></iframe>
+          </div>
+
+          <!-- Aviso de análise estática sem execução JS -->
+          <div *ngIf="isLicaoJavaScript()" class="js-static-notice p-3 rounded border">
+            <span class="badge bg-secondary mb-1">Análise estática JavaScript</span>
+            <p class="small mb-0 text-muted">
+              Os exemplos e desafios de JavaScript são analisados estaticamente com foco em sintaxe ES2023+ e estrutura correta, sem executar código no navegador.
+            </p>
+          </div>
+        </section>
+
+        <!-- Desafio atual -->
+        <ng-container *ngIf="desafioAtual() as desafio">
+          <section class="challenge-card" [attr.aria-label]="'Desafio ' + (indiceAtual() + 1) + ': ' + getDesafioTipoLabel(desafio.tipo)">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <p class="challenge-type mb-0">
+                {{ getDesafioTipoLabel(desafio.tipo) }}
+              </p>
+              <span *ngIf="desafio.tipo === 'ENCONTRAR_ERRO'" class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                Atenção ao código
+              </span>
+            </div>
+
             <h2>
               <code>{{ desafio.enunciado }}</code>
             </h2>
 
-            <div *ngIf="desafio.tipo === 'ESCOLHA_UNICA'" class="option-list">
+            <!-- ESCOLHA ÚNICA -->
+            <div
+              *ngIf="desafio.tipo === 'ESCOLHA_UNICA'"
+              class="option-list"
+              role="radiogroup"
+              aria-label="Opções de escolha única"
+            >
               <button
                 *ngFor="let opcao of desafio.opcoes; let idx = index"
                 type="button"
@@ -107,7 +192,64 @@
               </button>
             </div>
 
+            <!-- ENCONTRAR ERRO -->
+            <div
+              *ngIf="desafio.tipo === 'ENCONTRAR_ERRO'"
+              class="finding-error-panel mt-3"
+              role="radiogroup"
+              aria-label="Opções para identificar o erro"
+            >
+              <p class="text-muted small mb-2">
+                Analise cuidadosamente as alternativas e selecione a opção que responde ao enunciado:
+              </p>
+              <div class="option-list">
+                <button
+                  *ngFor="let opcao of desafio.opcoes; let idx = index"
+                  type="button"
+                  class="option-card option-card-error"
+                  [class.selected]="respostaAtual() === opcao.id"
+                  (click)="selecionarOpcao(opcao.id)"
+                  [attr.aria-pressed]="respostaAtual() === opcao.id"
+                >
+                  <span class="option-index error-index">{{ idx + 1 }}</span>
+                  <code>{{ opcao.texto }}</code>
+                </button>
+              </div>
+            </div>
+
+            <!-- COMPLETAR LACUNAS -->
+            <section
+              *ngIf="
+                desafio.tipo === 'COMPLETAR_LACUNAS' &&
+                getBlankExerciseContent(desafio.conteudo) as lacuna
+              "
+              class="blank-exercise mt-3 d-grid gap-2"
+              aria-labelledby="blank-title"
+            >
+              <h3 id="blank-title" class="visually-hidden">Exercício de preenchimento de lacuna</h3>
+              <p id="blank-instruction" class="mb-1">{{ lacuna.orientacao }}</p>
+              <pre id="blank-code" class="blank-code-block font-monospace"><code>{{ lacuna.codigoInicial }}</code></pre>
+              <label for="blank-answer" class="form-label fw-bold mb-0">Sua resposta para a lacuna:</label>
+              <input
+                id="blank-answer"
+                aria-describedby="blank-instruction blank-code"
+                class="form-control font-monospace"
+                type="text"
+                [value]="getCodigoAtual()"
+                (input)="atualizarRespostaTexto($event)"
+                [disabled]="submitting()"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                placeholder="Digite a palavra ou tag que completa a lacuna"
+              />
+            </section>
+
+            <!-- ORDENAÇÃO -->
             <div *ngIf="desafio.tipo === 'ORDENACAO'" class="ordering-panel">
+              <p class="text-muted small mb-2">
+                Arraste ou use os botões para organizar os blocos na ordem correta:
+              </p>
               <div
                 cdkDropList
                 class="order-list"
@@ -118,7 +260,7 @@
                   *ngFor="let opcaoId of ordemAtual(); let index = index"
                   class="order-item"
                   cdkDrag
-                  [attr.aria-label]="'Bloco ' + (index + 1)"
+                  [attr.aria-label]="'Bloco ' + (index + 1) + ': ' + getOpcaoTextoPorId(opcaoId)"
                 >
                   <span class="drag-handle" cdkDragHandle aria-label="Mover bloco">⋮⋮</span>
                   <code>{{ getOpcaoTextoPorId(opcaoId) }}</code>
@@ -127,7 +269,7 @@
                       type="button"
                       class="btn btn-outline-secondary btn-sm"
                       (click)="moverItem(index, -1)"
-                      aria-label="Subir bloco"
+                      [attr.aria-label]="'Subir bloco ' + (index + 1)"
                     >
                       ↑
                     </button>
@@ -135,7 +277,7 @@
                       type="button"
                       class="btn btn-outline-secondary btn-sm"
                       (click)="moverItem(index, 1)"
-                      aria-label="Descer bloco"
+                      [attr.aria-label]="'Descer bloco ' + (index + 1)"
                     >
                       ↓
                     </button>
@@ -143,51 +285,85 @@
                 </div>
               </div>
             </div>
+
+            <!-- ESCRITA DE CÓDIGO -->
+            <section
+              *ngIf="
+                desafio.tipo === 'ESCRITA_CODIGO' && getCodeEditorContent(desafio.conteudo) as editor
+              "
+              class="code-exercise mt-4"
+              aria-labelledby="code-heading"
+            >
+              <div class="code-editor-heading d-flex justify-content-between align-items-center">
+                <label id="code-heading" for="code-answer">
+                  Seu código {{ editor.linguagem.toUpperCase() }}
+                </label>
+                <span class="badge bg-secondary">{{ editor.linguagem.toUpperCase() }}</span>
+              </div>
+              <p id="code-instruction" class="px-3 pt-2 mb-2 text-light-emphasis">{{ editor.orientacao }}</p>
+              <textarea
+                id="code-answer"
+                class="code-editor"
+                [value]="getCodigoAtual()"
+                (input)="atualizarCodigo($event)"
+                [attr.aria-label]="'Código de resposta em ' + editor.linguagem"
+                aria-describedby="code-instruction"
+                [disabled]="submitting()"
+                autocapitalize="off"
+                autocomplete="off"
+                autocorrect="off"
+                spellcheck="false"
+                maxlength="12000"
+                rows="10"
+              ></textarea>
+
+              <!-- Pré-visualização ao vivo para exercícios HTML/CSS -->
+              <div
+                *ngIf="editor.linguagem === 'html' || editor.linguagem === 'css'"
+                class="live-preview-box p-3 border-top border-secondary"
+              >
+                <div class="preview-header d-flex justify-content-between align-items-center mb-2">
+                  <span class="preview-badge">Pré-visualização ao vivo</span>
+                  <span class="sandbox-tag">iframe sandboxed seguro</span>
+                </div>
+                <iframe
+                  class="preview-frame live-preview-frame"
+                  sandbox=""
+                  [srcdoc]="previewExercicioAoVivo()"
+                  title="Pré-visualização ao vivo do código digitado"
+                ></iframe>
+              </div>
+
+              <!-- Aviso de JavaScript estático para exercícios JS -->
+              <div
+                *ngIf="editor.linguagem === 'javascript'"
+                class="js-code-notice p-3 border-top border-secondary text-light-emphasis small"
+              >
+                <strong>Validação estática:</strong> Seu código JavaScript é validado estruturalmente pelo servidor através de análise sintática. Nenhum script é executado no navegador.
+              </div>
+            </section>
           </section>
 
+          <!-- Banner de feedback (resposta certa ou errada) -->
           <div
             *ngIf="feedback() as feedbackAtual"
-            class="feedback-banner"
+            class="feedback-banner mt-4"
             [ngClass]="{ 'is-success': feedbackAtual.acertou, 'is-error': !feedbackAtual.acertou }"
+            role="alert"
             aria-live="polite"
           >
             <strong>{{
               feedbackAtual.acertou ? 'Resposta correta!' : 'Resposta incorreta.'
             }}</strong>
-            <p *ngIf="feedbackAtual.acertou">+{{ feedbackAtual.xpGanho }} XP</p>
+            <p *ngIf="feedbackAtual.acertou" class="fw-bold text-success">+{{ feedbackAtual.xpGanho }} XP</p>
             <p *ngIf="!feedbackAtual.acertou">Revise sua resposta e tente novamente.</p>
-            <p>{{ feedbackAtual.explicacao }}</p>
+            <p *ngIf="feedbackAtual.explicacao">{{ feedbackAtual.explicacao }}</p>
             <p *ngIf="!feedbackAtual.acertou && feedbackAtual.dica">
               <strong>Dica:</strong> {{ feedbackAtual.dica }}
             </p>
           </div>
 
-          <section
-            *ngIf="
-              desafio.tipo === 'ESCRITA_CODIGO' && getCodeEditorContent(desafio.conteudo) as editor
-            "
-            class="code-exercise"
-          >
-            <div class="code-editor-heading">
-              <label for="code-answer">Seu código {{ editor.linguagem.toUpperCase() }}</label>
-            </div>
-            <p>{{ editor.orientacao }}</p>
-            <textarea
-              id="code-answer"
-              class="code-editor"
-              [value]="getCodigoAtual()"
-              (input)="atualizarCodigo($event)"
-              [attr.aria-label]="'Código de resposta em ' + editor.linguagem"
-              [disabled]="submitting()"
-              autocapitalize="off"
-              autocomplete="off"
-              autocorrect="off"
-              spellcheck="false"
-              maxlength="12000"
-              rows="12"
-            ></textarea>
-          </section>
-
+          <!-- Linha de ações -->
           <div class="action-row d-flex justify-content-between align-items-center mt-4 gap-3">
             <button
               type="button"

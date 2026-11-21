@@ -154,6 +154,39 @@ describe('ProgressService', () => {
     ).toBe(true);
   });
 
+  it('aceita texto alternativo descritivo diferente do exemplo esperado', () => {
+    const config = {
+      linguagem: 'html',
+      verificacoes: [
+        {
+          tipo: 'HTML_ATTRIBUTE',
+          tag: 'a',
+          atributo: 'href',
+          valor: 'https://developer.mozilla.org/pt-BR/',
+        },
+        { tipo: 'HTML_ELEMENT', tag: 'a', texto: 'Documentação' },
+        {
+          tipo: 'HTML_ATTRIBUTE',
+          tag: 'img',
+          atributo: 'alt',
+          valor: 'Livro de HTML',
+        },
+      ],
+    };
+    const resposta =
+      '<a href="https://developer.mozilla.org/pt-BR/">Documentação da MDN</a>\n' +
+      '<img src="logo-mdn.png" alt="Logotipo da MDN Web Docs com fundo escuro e letras brancas">';
+    const imagemSemDescricao = resposta.replace(
+      'alt="Logotipo da MDN Web Docs com fundo escuro e letras brancas"',
+      'alt=""',
+    );
+
+    expect(service.evaluateCodeAnswer(resposta, config).acertou).toBe(true);
+    expect(
+      service.evaluateCodeAnswer(imagemSemDescricao, config).acertou,
+    ).toBe(false);
+  });
+
   it('corrige declarações CSS mesmo com espaços e regras em media query', () => {
     const config = {
       linguagem: 'css',

@@ -88,11 +88,29 @@
   background: #1d4ed8;
 }
 
-.modulo-block h3 {
+.modulo-header {
   margin-bottom: 1rem;
+}
+
+.modulo-header h3 {
   font-size: 1.2rem;
   font-weight: 700;
   color: #1f2937;
+}
+
+.modulo-xp-badge .badge {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.module-coming-soon-card {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1 !important;
+  color: #475569;
+}
+
+.coming-soon-icon {
+  font-size: 1.75rem;
 }
 
 .lesson-track {
@@ -102,8 +120,8 @@
 }
 
 .lesson-node {
-  flex: 1 1 180px;
-  min-height: 128px;
+  flex: 1 1 200px;
+  min-height: 136px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -114,6 +132,7 @@
   text-align: left;
   font-weight: 600;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
 }
 
 .lesson-node:focus-visible,
@@ -140,6 +159,42 @@
   color: #6b7280;
 }
 
+/* Distinção visual para projetos */
+.lesson-node.is-project {
+  border-left-width: 5px;
+  border-left-color: #8b5cf6;
+}
+
+.lesson-node.is-project.is-completed {
+  border-color: #7fc79e;
+  border-left-color: #7c3aed;
+  background: #f5f3ff;
+}
+
+.lesson-node.is-project.is-available {
+  border-color: #c4b5fd;
+  border-left-color: #7c3aed;
+  background: #faf5ff;
+}
+
+/* Distinção visual para revisões */
+.lesson-node.is-review {
+  border-left-width: 5px;
+  border-left-color: #0d9488;
+}
+
+.lesson-node.is-review.is-completed {
+  border-color: #7fc79e;
+  border-left-color: #0d9488;
+  background: #f0fdfa;
+}
+
+.lesson-node.is-review.is-available {
+  border-color: #99f6e4;
+  border-left-color: #0d9488;
+  background: #f0fdfa;
+}
+
 .lesson-node:disabled {
   cursor: not-allowed;
 }
@@ -153,16 +208,45 @@
   border-radius: 50%;
   background: #fff;
   font-weight: 800;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.lesson-node-type-badge {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+
+.badge-project {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.badge-review {
+  background: #ccfbf1;
+  color: #0f766e;
 }
 
 .lesson-node-title {
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.3;
 }
 
 .lesson-node-state {
   font-size: 0.78rem;
   opacity: 0.8;
+}
+
+.lesson-node-xp {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
 }
 
 .loading-box {

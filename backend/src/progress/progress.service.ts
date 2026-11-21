@@ -402,7 +402,9 @@ export class ProgressService {
           element.attrs.some(
             (attribute) =>
               attribute.name === verificacao.atributo.toLowerCase() &&
-              attribute.value === verificacao.valor,
+              (verificacao.atributo.toLowerCase() === 'alt'
+                ? attribute.value.trim().length > 0
+                : attribute.value === verificacao.valor),
           ),
       );
     }

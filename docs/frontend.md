@@ -58,15 +58,23 @@ Essas regras de interface não substituem a validação do servidor. Os DTOs Nes
 
 ## Desafios e regras no cliente
 
-`LicaoPageComponent` identifica o desafio atual e usa signals e propriedades `computed` para controlar a resposta e a habilitação do botão de verificação:
+`LicaoPageComponent` identifica o desafio atual e usa signals e propriedades `computed` para controlar a resposta, a pré-visualização isolada e a habilitação do botão de verificação:
 
+- mini-explicação pedagógica, exemplo de código comentado e resultado guiado exibidos a partir dos dados da API;
+- pré-visualização renderizada de exemplos HTML/CSS em `iframe` com atributo `sandbox=""` estrito, sem scripts nem acesso à origem;
+- exercícios de escrita de código HTML/CSS com prévia ao vivo atualizada em tempo real via signal computado e sanitização segura (`DomSanitizer.bypassSecurityTrustHtml`);
+- exercícios e lições de JavaScript tratados exclusivamente por análise estática de sintaxe e boas práticas no servidor, sem execução no navegador e sem prévia;
 - escolha única requer um ID de opção;
 - ordenação requer uma sequência com o número esperado de opções;
-- escrita de código requer texto não vazio.
+- completar lacunas requer texto não vazio e submete `respostaTexto`;
+- encontrar erro requer a seleção da opção correspondente e submete `opcaoId`;
+- escrita de código requer texto não vazio e submete `codigo`.
 
-Para ordenação, a interface usa Angular CDK Drag and Drop, além de controles para mover os itens. Para escrita de código, a tela recebe a linguagem, a orientação e o código inicial na propriedade `conteudo` do desafio. A resposta é enviada à API, que faz a avaliação definitiva e registra a tentativa. Portanto, as verificações visuais no Angular são uma conveniência de uso, não uma regra de segurança ou avaliação confiável.
+Para ordenação, a interface usa Angular CDK Drag and Drop, além de controles acessíveis de teclado para mover os blocos. Para escrita de código, a tela recebe a linguagem, a orientação e o código inicial na propriedade `conteudo` do desafio. A resposta é enviada à API, que faz a avaliação definitiva no servidor e registra a tentativa. Portanto, as verificações visuais no Angular são uma conveniência de uso, não uma regra de segurança ou avaliação confiável.
 
-Uma resposta incorreta mostra a explicação e a dica retornada pela API, não exibe o gabarito e mantém o estudante no desafio para tentar novamente. Só é possível avançar após o acerto. O backend também exige o acerto de todos os desafios antes de concluir a lição. Os contratos do cliente já reconhecem os tipos de lacuna e identificação de erro; os controles visuais específicos desses tipos serão ligados na fase de interface.
+Uma resposta incorreta mostra a explicação e a dica retornadas pela API, não exibe o gabarito e mantém o estudante no desafio para tentar novamente. O botão "Continuar" só é liberado após o acerto. O backend também exige o acerto de todos os desafios antes de concluir a lição.
+
+Na tela de trilha (`TrilhaPageComponent`), os módulos exibem o XP acumulado no cabeçalho e cada lição apresenta seu XP individual. Lições do tipo projeto e revisão são diferenciadas visualmente por selos e bordas temáticas, e módulos não publicados são apresentados explicitamente como "Em breve", distinguindo-os de módulos vazios por erro.
 
 Após receber o resultado, a página atualiza o XP local e avança para o próximo desafio, para a próxima lição ou para a trilha. A API permanece como fonte oficial de progresso e XP.
 

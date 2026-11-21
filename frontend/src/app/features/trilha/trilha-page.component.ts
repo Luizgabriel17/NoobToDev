@@ -37,4 +37,15 @@ export class TrilhaPageComponent implements OnInit {
   getMotivoBloqueio(): string {
     return 'Complete a lição anterior para desbloquear esta etapa.';
   }
+
+  getLicaoTipoLabel(tipo: string): string {
+    switch (tipo) {
+      case 'PROJETO':
+        return 'Projeto';
+      case 'REVISAO':
+        return 'Revisão';
+      default:
+        return 'Lição';
+    }
+  }
 }

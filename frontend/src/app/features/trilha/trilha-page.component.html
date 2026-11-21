@@ -37,7 +37,7 @@
     {{ error() }}
   </div>
 
-  <section *ngFor="let trilha of trilhas()" class="trilha-card mb-4">
+  <section *ngFor="let trilha of trilhas()" class="trilha-card mb-4" [attr.aria-label]="trilha.titulo">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
       <div>
         <p class="eyebrow">{{ trilha.linguagem.nome }}</p>
@@ -46,19 +46,46 @@
 
       <div class="progress-summary">
         <div class="progress-label">
-          <span>{{ trilha.progresso.concluidas }}/{{ trilha.progresso.total }} lições</span>
+          <span>{{ trilha.progresso.concluidas }}/{{ trilha.progresso.total }} lições concluídas</span>
           <span>{{ trilha.progresso.percentual }}%</span>
         </div>
-        <div class="progress" aria-label="Progresso da trilha">
+        <div class="progress" role="progressbar" [attr.aria-valuenow]="trilha.progresso.percentual" aria-valuemin="0" aria-valuemax="100" aria-label="Progresso da trilha">
           <div class="progress-bar" [style.width.%]="trilha.progresso.percentual"></div>
         </div>
       </div>
     </div>
 
     <div *ngFor="let modulo of trilha.modulos" class="modulo-block mb-4">
-      <h3>{{ modulo.titulo }}</h3>
+      <div class="modulo-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <h3 class="mb-0">{{ modulo.titulo }}</h3>
+          <span *ngIf="modulo.emBreve" class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">
+            Em breve
+          </span>
+        </div>
+        <div *ngIf="!modulo.emBreve" class="modulo-xp-badge">
+          <span class="badge bg-warning-subtle text-dark border border-warning-subtle">
+            {{ modulo.xpGanho }} XP obtido
+          </span>
+        </div>
+      </div>
 
-      <div class="lesson-track">
+      <!-- Módulo em breve -->
+      <div *ngIf="modulo.emBreve" class="module-coming-soon-card p-4 rounded-3 border text-center my-3">
+        <div class="coming-soon-pill mb-2"><span class="badge bg-secondary-subtle text-secondary border">Módulo futuro</span></div>
+        <h4 class="h6 text-muted mb-1">{{ modulo.titulo }}</h4>
+        <p class="small text-muted mb-0">
+          Este módulo está estruturado no currículo e será publicado em breve.
+        </p>
+      </div>
+
+      <!-- Módulo vazio por erro (não é emBreve, mas não possui lições) -->
+      <div *ngIf="!modulo.emBreve && modulo.licoes.length === 0" class="alert alert-warning my-3" role="alert">
+        Nenhuma lição encontrada para este módulo.
+      </div>
+
+      <!-- Lista de lições do módulo -->
+      <div *ngIf="!modulo.emBreve && modulo.licoes.length > 0" class="lesson-track">
         <button
           *ngFor="let licao of modulo.licoes; let index = index"
           type="button"
@@ -66,18 +93,39 @@
           [ngClass]="{
             'is-completed': licao.status === 'CONCLUIDA',
             'is-available': licao.status === 'DISPONIVEL',
-            'is-blocked': licao.status === 'BLOQUEADA'
+            'is-blocked': licao.status === 'BLOQUEADA',
+            'is-project': licao.tipo === 'PROJETO',
+            'is-review': licao.tipo === 'REVISAO'
           }"
           [disabled]="licao.status === 'BLOQUEADA'"
-          [attr.aria-label]="licao.titulo + ' - ' + licao.status"
-          [title]="licao.status === 'BLOQUEADA' ? getMotivoBloqueio() : 'Abrir lição'"
+          [attr.aria-label]="licao.titulo + ' - ' + getLicaoTipoLabel(licao.tipo) + ' - ' + (licao.status === 'CONCLUIDA' ? 'Concluída' : licao.status === 'DISPONIVEL' ? 'Disponível' : 'Bloqueada') + (licao.xpGanho > 0 ? ' - ' + licao.xpGanho + ' XP' : '')"
+          [title]="licao.status === 'BLOQUEADA' ? getMotivoBloqueio() : 'Abrir lição: ' + licao.titulo"
           [routerLink]="licao.status === 'BLOQUEADA' ? undefined : ['/licao', licao.id]"
         >
-          <span class="lesson-node-order">{{ index + 1 }}</span>
+          <div class="lesson-node-top d-flex justify-content-between align-items-center w-100">
+            <span class="lesson-node-order">{{ index + 1 }}</span>
+            <span
+              *ngIf="licao.tipo !== 'CONTEUDO'"
+              class="lesson-node-type-badge"
+              [ngClass]="{
+                'badge-project': licao.tipo === 'PROJETO',
+                'badge-review': licao.tipo === 'REVISAO'
+              }"
+            >
+              {{ getLicaoTipoLabel(licao.tipo) }}
+            </span>
+          </div>
+
           <span class="lesson-node-title">{{ licao.titulo }}</span>
-          <span class="lesson-node-state">
-            {{ licao.status === 'CONCLUIDA' ? 'Concluída' : licao.status === 'DISPONIVEL' ? 'Disponível' : 'Bloqueada' }}
-          </span>
+
+          <div class="lesson-node-footer d-flex justify-content-between align-items-center w-100">
+            <span class="lesson-node-state">
+              {{ licao.status === 'CONCLUIDA' ? 'Concluída' : licao.status === 'DISPONIVEL' ? 'Disponível' : 'Bloqueada' }}
+            </span>
+            <span class="lesson-node-xp" *ngIf="licao.xpGanho > 0">
+              {{ licao.xpGanho }} XP
+            </span>
+          </div>
         </button>
       </div>
     </div>

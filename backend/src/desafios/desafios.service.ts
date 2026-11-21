@@ -103,17 +103,17 @@ export class DesafiosService {
           },
         });
 
+        const challengeIds = desafio.licao.desafios.map(({ id }) => id);
         const tentativasDaLicao = await transaction.tentativa.findMany({
           where: {
             usuarioId,
-            desafio: { licaoId: desafio.licao.id },
+            desafioId: { in: challengeIds },
           },
           select: {
             desafioId: true,
             acertou: true,
           },
         });
-        const challengeIds = desafio.licao.desafios.map(({ id }) => id);
         const answeredChallengeIds = tentativasDaLicao
           .filter(({ acertou }) => acertou)
           .map(({ desafioId: id }) => id);
